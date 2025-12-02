@@ -75,7 +75,6 @@ try:
     TF_AVAILABLE = True
 except ImportError:
     TF_AVAILABLE = False
-    print("TensorFlow not available, Bi-LSTM model will not work")
     # Try to install TensorFlow
     try:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "tensorflow==2.15.0"])
@@ -109,7 +108,7 @@ st.markdown("""
     /* Main Header */
     .main-header {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2.5rem;
+        padding: 2rem;
         border-radius: 15px;
         margin-bottom: 2rem;
         text-align: center;
@@ -117,14 +116,14 @@ st.markdown("""
         box-shadow: 0 10px 30px rgba(0,0,0,0.1);
     }
     .main-title {
-        font-size: 3.5rem;
+        font-size: 2.8rem;
         font-weight: 800;
         margin: 0;
         letter-spacing: -0.5px;
         text-shadow: 2px 2px 4px rgba(0,0,0,0.2);
     }
     .sub-title {
-        font-size: 1.4rem;
+        font-size: 1.2rem;
         opacity: 0.95;
         margin-top: 0.8rem;
         font-weight: 300;
@@ -135,57 +134,46 @@ st.markdown("""
     .card {
         background: white;
         border-radius: 15px;
-        padding: 1.8rem;
+        padding: 1.5rem;
         margin: 1rem 0;
         box-shadow: 0 4px 15px rgba(0,0,0,0.08);
         border: 1px solid #e9ecef;
-        transition: all 0.3s ease;
-    }
-    .card:hover {
-        transform: translateY(-5px);
-        box-shadow: 0 8px 25px rgba(0,0,0,0.12);
     }
     
     /* Prediction Display */
     .prediction-container {
         background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
         border-radius: 20px;
-        padding: 2.5rem;
+        padding: 2rem;
         text-align: center;
         border-left: 8px solid #667eea;
         min-height: 280px;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
-        align-items: center;
         box-shadow: 0 6px 20px rgba(0,0,0,0.08);
     }
     .prediction-word {
-        font-size: 3.5rem;
+        font-size: 3rem;
         font-weight: 900;
         color: #2d3748;
         margin: 1.5rem 0;
         text-transform: uppercase;
         letter-spacing: 2px;
-        text-shadow: 1px 1px 3px rgba(0,0,0,0.1);
     }
     .confidence-bar-container {
         width: 100%;
-        height: 25px;
+        height: 20px;
         background: #e2e8f0;
-        border-radius: 12px;
+        border-radius: 10px;
         margin: 1.5rem 0;
         overflow: hidden;
-        position: relative;
     }
     .confidence-fill {
         height: 100%;
-        background: linear-gradient(90deg, #48bb78, #38a169, #2f855a);
-        border-radius: 12px;
-        transition: width 0.8s cubic-bezier(0.34, 1.56, 0.64, 1);
+        background: linear-gradient(90deg, #48bb78, #38a169);
+        border-radius: 10px;
+        transition: width 0.8s ease;
     }
     .confidence-text {
-        font-size: 1.3rem;
+        font-size: 1.2rem;
         color: #4a5568;
         font-weight: 700;
         margin-top: 0.5rem;
@@ -194,21 +182,21 @@ st.markdown("""
     /* Metrics */
     .metric-box {
         background: white;
-        padding: 1.5rem;
-        border-radius: 12px;
+        padding: 1.2rem;
+        border-radius: 10px;
         text-align: center;
         border-top: 5px solid #667eea;
-        margin: 0.8rem 0;
+        margin: 0.5rem 0;
         box-shadow: 0 3px 10px rgba(0,0,0,0.05);
     }
     .metric-value {
-        font-size: 2.2rem;
+        font-size: 1.8rem;
         font-weight: 800;
         color: #2d3748;
-        margin: 0.5rem 0;
+        margin: 0.3rem 0;
     }
     .metric-label {
-        font-size: 0.95rem;
+        font-size: 0.9rem;
         color: #718096;
         text-transform: uppercase;
         letter-spacing: 1px;
@@ -217,28 +205,27 @@ st.markdown("""
     
     /* Status Indicators */
     .status-box {
-        padding: 1rem 1.5rem;
-        border-radius: 10px;
-        margin: 0.5rem 0;
+        padding: 0.8rem 1.2rem;
+        border-radius: 8px;
+        margin: 0.3rem 0;
         text-align: center;
         font-weight: 700;
-        font-size: 1rem;
-        letter-spacing: 0.5px;
+        font-size: 0.9rem;
     }
     .status-active {
-        background: linear-gradient(135deg, #c6f6d5, #9ae6b4);
+        background: #c6f6d5;
         color: #22543d;
-        border-left: 5px solid #38a169;
+        border-left: 4px solid #38a169;
     }
     .status-warning {
-        background: linear-gradient(135deg, #feebc8, #fbd38d);
+        background: #feebc8;
         color: #744210;
-        border-left: 5px solid #dd6b20;
+        border-left: 4px solid #dd6b20;
     }
     .status-inactive {
-        background: linear-gradient(135deg, #e2e8f0, #cbd5e0);
+        background: #e2e8f0;
         color: #4a5568;
-        border-left: 5px solid #a0aec0;
+        border-left: 4px solid #a0aec0;
     }
     
     /* Buttons */
@@ -246,131 +233,57 @@ st.markdown("""
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
-        padding: 1rem 2rem;
-        border-radius: 12px;
+        padding: 0.8rem 1.5rem;
+        border-radius: 10px;
         font-weight: 700;
-        font-size: 1.1rem;
-        transition: all 0.3s ease;
+        font-size: 1rem;
         width: 100%;
-        letter-spacing: 0.5px;
-        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-    }
-    .stButton > button:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 8px 25px rgba(102, 126, 234, 0.4);
     }
     
     /* Camera Container */
     .camera-frame {
-        border-radius: 20px;
+        border-radius: 15px;
         overflow: hidden;
-        box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
         background: #000;
-        position: relative;
-        border: 3px solid #e9ecef;
+        border: 2px solid #e9ecef;
     }
     
     /* Progress Bar */
     .progress-container {
         width: 100%;
-        height: 10px;
+        height: 8px;
         background: #e2e8f0;
-        border-radius: 5px;
+        border-radius: 4px;
         margin: 1rem 0;
         overflow: hidden;
     }
     .progress-fill {
         height: 100%;
         background: linear-gradient(90deg, #667eea, #764ba2);
-        border-radius: 5px;
-        transition: width 0.5s ease;
+        border-radius: 4px;
     }
     
     /* Error Messages */
-    .error-message {
-        background: linear-gradient(135deg, #fed7d7, #feb2b2);
+    .error-box {
+        background: #fed7d7;
         color: #742a2a;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid #c53030;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #c53030;
         margin: 1rem 0;
     }
     
-    .warning-message {
-        background: linear-gradient(135deg, #feebc8, #fbd38d);
+    .warning-box {
+        background: #feebc8;
         color: #744210;
-        padding: 1.5rem;
-        border-radius: 10px;
-        border-left: 5px solid #dd6b20;
+        padding: 1rem;
+        border-radius: 8px;
+        border-left: 4px solid #dd6b20;
         margin: 1rem 0;
     }
 </style>
 """, unsafe_allow_html=True)
-
-# ==========================================
-# CAMERA UTILITY FUNCTIONS
-# ==========================================
-
-def find_working_camera():
-    """
-    Try different camera indices to find a working camera
-    Returns the camera index or -1 if no camera found
-    """
-    # Try common camera indices
-    camera_indices = [0, 1, 2, 3, 4]
-    
-    for index in camera_indices:
-        cap = cv2.VideoCapture(index)
-        if cap.isOpened():
-            # Try to read a frame to confirm
-            ret, frame = cap.read()
-            if ret and frame is not None:
-                cap.release()
-                return index
-            cap.release()
-    
-    # Try with different backends
-    backends = [
-        cv2.CAP_ANY,
-        cv2.CAP_V4L2,
-        cv2.CAP_V4L,
-        cv2.CAP_DSHOW,
-        cv2.CAP_MSMF,
-        cv2.CAP_AVFOUNDATION
-    ]
-    
-    for backend in backends:
-        for index in camera_indices:
-            cap = cv2.VideoCapture(index, backend)
-            if cap.isOpened():
-                ret, frame = cap.read()
-                if ret:
-                    cap.release()
-                    return index
-                cap.release()
-    
-    return -1
-
-def create_dummy_frame():
-    """Create a dummy frame for demonstration when camera is not available"""
-    # Create a black frame with ASL text
-    frame = np.zeros((480, 640, 3), dtype=np.uint8)
-    frame[:] = [30, 30, 30]  # Dark gray background
-    
-    # Add ASL title
-    cv2.putText(frame, "ASL RECOGNITION", (100, 150), 
-                cv2.FONT_HERSHEY_DUPLEX, 1.5, (102, 126, 234), 3)
-    
-    # Add instructions
-    cv2.putText(frame, "Camera access required for live feed", (80, 220), 
-                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 2)
-    
-    # Add webcam icon
-    cv2.rectangle(frame, (250, 260), (390, 380), (102, 126, 234), 3)
-    cv2.circle(frame, (320, 320), 40, (102, 126, 234), 3)
-    cv2.circle(frame, (320, 320), 10, (102, 126, 234), -1)
-    
-    return frame
 
 # ==========================================
 # SIDEBAR CONFIGURATION
@@ -378,21 +291,20 @@ def create_dummy_frame():
 
 st.sidebar.markdown("""
 <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); 
-            padding: 1.5rem; 
-            border-radius: 15px; 
+            padding: 1.2rem; 
+            border-radius: 12px; 
             color: white; 
             text-align: center;
-            margin-bottom: 2rem;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.1);'>
-    <h2 style='margin: 0; font-size: 1.8rem;'>CONTROL PANEL</h2>
+            margin-bottom: 1.5rem;'>
+    <h2 style='margin: 0; font-size: 1.5rem;'>CONTROL PANEL</h2>
 </div>
 """, unsafe_allow_html=True)
 
 # Camera Mode Selection
-st.sidebar.markdown("### CAMERA MODE")
+st.sidebar.markdown("### OPERATION MODE")
 camera_mode = st.sidebar.radio(
     "Select Input Source:",
-    ("Live Camera", "Demo Mode", "Upload Video")
+    ("Live Camera", "Demo Mode")
 )
 
 # Model Selection
@@ -401,124 +313,60 @@ model_type = st.sidebar.selectbox(
     "",
     ("Bi-LSTM (14 words)", 
      "XGBoost (14 words)",
-     "Mini-XGBoost (5 words)"),
-    help="Select the AI model for recognition"
+     "Mini-XGBoost (5 words)")
 )
 
 # Configuration Settings
 st.sidebar.markdown("### CONFIGURATION SETTINGS")
 conf_threshold = st.sidebar.slider(
     "Confidence Threshold", 
-    0.0, 1.0, CONFIDENCE_THRESHOLD, 0.05,
-    help="Minimum confidence level for predictions"
+    0.0, 1.0, CONFIDENCE_THRESHOLD, 0.05
 )
-draw_landmarks = st.sidebar.checkbox("Show Skeleton Overlay", value=True,
-                                     help="Display MediaPipe skeleton on camera feed")
-show_fps = st.sidebar.checkbox("Display FPS Counter", value=True,
-                               help="Show frames per second counter")
-
-# Camera troubleshooting
-with st.sidebar.expander("CAMERA TROUBLESHOOTING"):
-    st.markdown("""
-    **If camera doesn't work:**
-    
-    1. **Check permissions:** Allow camera access in browser
-    2. **Close other apps:** Ensure no other app is using camera
-    3. **Try different browser:** Chrome usually works best
-    4. **Use Demo Mode:** For testing without camera
-    
-    **Mobile devices:**
-    - Grant camera permission
-    - Use Chrome or Safari
-    - Ensure good lighting
-    
-    **For Streamlit Cloud:**
-    - Camera requires local execution
-    - Use Demo Mode on cloud
-    """)
+draw_landmarks = st.sidebar.checkbox("Show Skeleton Overlay", value=True)
+show_fps = st.sidebar.checkbox("Display FPS Counter", value=True)
 
 # Model Information
-st.sidebar.markdown("### MODEL INFORMATION")
-
-# Set model file based on selection
 if "Bi-LSTM" in model_type:
     MODEL_FILE = MODEL_FILES['bilstm']
     IS_DEEP_LEARNING = True
-    if TF_AVAILABLE:
-        st.sidebar.markdown("""
-        <div class='card'>
-            <h4 style='color: #667eea;'>Bi-LSTM Neural Network</h4>
-            <p><strong>Architecture:</strong> Bidirectional LSTM with Hybrid Pooling</p>
-            <p><strong>Accuracy:</strong> 87.86%</p>
-            <p><strong>Best For:</strong> Complex temporal patterns</p>
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        st.sidebar.markdown("""
-        <div class='warning-message'>
-            <strong>TensorFlow not available.</strong> Bi-LSTM will not work.
-        </div>
-        """, unsafe_allow_html=True)
 elif "XGBoost" in model_type and "Mini" not in model_type:
     MODEL_FILE = MODEL_FILES['xgboost']
     IS_DEEP_LEARNING = False
-    st.sidebar.markdown("""
-    <div class='card'>
-        <h4 style='color: #667eea;'>XGBoost Classifier</h4>
-        <p><strong>Architecture:</strong> Gradient Boosting Decision Trees</p>
-        <p><strong>Accuracy:</strong> 79.56%</p>
-        <p><strong>Best For:</strong> Fast inference, distinct poses</p>
-    </div>
-    """, unsafe_allow_html=True)
 else:  # Mini-XGBoost
     MODEL_FILE = MODEL_FILES['minixgb']
     IS_DEEP_LEARNING = False
-    st.sidebar.markdown("""
-    <div class='card'>
-        <h4 style='color: #667eea;'>Mini XGBoost (Demo)</h4>
-        <p><strong>Vocabulary:</strong> 5 basic signs</p>
-        <p><strong>Purpose:</strong> Quick testing & demonstration</p>
-        <p><strong>Best For:</strong> Rapid prototyping</p>
-    </div>
-    """, unsafe_allow_html=True)
 
 # ==========================================
-# KERAS MODEL LOADING FIX
+# HELPER FUNCTIONS
 # ==========================================
 
-def fix_keras_model(model_path):
-    """
-    Fix for Keras 3.x compatibility issues
-    Creates a compatible model based on your architecture
-    """
-    if not TF_AVAILABLE:
-        return None
+def create_dummy_frame():
+    """Create a dummy frame for demo mode"""
+    frame = np.zeros((480, 640, 3), dtype=np.uint8)
+    frame[:] = [40, 40, 40]
     
-    try:
-        # First try direct loading
-        model = tf.keras.models.load_model(model_path)
-        return model
-    except:
-        try:
-            # Load with compile=False and custom objects
-            model = tf.keras.models.load_model(
-                model_path,
-                compile=False,
-                custom_objects={
-                    'AdamW': tf.keras.optimizers.legacy.AdamW
-                }
-            )
-            
-            # Recompile the model
-            model.compile(
-                optimizer=tf.keras.optimizers.legacy.AdamW(learning_rate=0.001, weight_decay=1e-4),
-                loss="sparse_categorical_crossentropy",
-                metrics=["accuracy"]
-            )
-            return model
-        except Exception as e:
-            st.error(f"Failed to load Keras model: {str(e)[:100]}")
-            return None
+    # Add title
+    cv2.putText(frame, "ASL RECOGNITION SYSTEM", (80, 100), 
+                cv2.FONT_HERSHEY_DUPLEX, 1.0, (102, 126, 234), 2)
+    
+    # Add demo mode text
+    cv2.putText(frame, "DEMO MODE ACTIVE", (180, 180), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (200, 200, 200), 2)
+    cv2.putText(frame, "Connect camera for live feed", (150, 220), 
+                cv2.FONT_HERSHEY_SIMPLEX, 0.7, (150, 150, 150), 1)
+    
+    # Draw a simple hand icon
+    center_x, center_y = 320, 320
+    # Palm
+    cv2.circle(frame, (center_x, center_y), 60, (102, 126, 234), 2)
+    # Fingers
+    for angle in [-60, -30, 0, 30, 60]:
+        rad = np.deg2rad(angle)
+        x = int(center_x + 80 * np.sin(rad))
+        y = int(center_y - 80 * np.cos(rad))
+        cv2.line(frame, (center_x, center_y), (x, y), (102, 126, 234), 2)
+    
+    return frame
 
 # ==========================================
 # PREPROCESSING FUNCTIONS
@@ -627,14 +475,18 @@ def load_models_and_labels(_model_file, is_dl):
         # Load model
         if is_dl:
             if TF_AVAILABLE:
-                model = fix_keras_model(_model_file)
-                if model is None:
+                try:
+                    model = tf.keras.models.load_model(_model_file, compile=False)
+                    model.compile(
+                        optimizer='adam',
+                        loss='sparse_categorical_crossentropy',
+                        metrics=['accuracy']
+                    )
+                except:
                     return None, None
             else:
-                st.error("TensorFlow not available for deep learning model")
                 return None, None
         else:
-            # Load ML model
             model = joblib.load(_model_file)
         
         # Load labels
@@ -647,11 +499,9 @@ def load_models_and_labels(_model_file, is_dl):
             else:
                 actions = {i: label for i, label in enumerate(label_map)}
         except FileNotFoundError:
-            # If label file not found, use default based on model type
             if "Mini" in model_type:
                 actions = {0: 'banana', 1: 'jacket', 2: 'cry', 3: 'catch', 4: 'pop'}
             else:
-                # Default labels for 14 classes
                 default_labels = ['hello', 'thanks', 'yes', 'no', 'please', 
                                 'sorry', 'help', 'water', 'food', 'bathroom',
                                 'medical', 'emergency', 'love', 'family']
@@ -660,21 +510,17 @@ def load_models_and_labels(_model_file, is_dl):
         return model, actions
         
     except FileNotFoundError:
-        st.error(f"Model file '{_model_file}' not found")
         return None, None
-    except Exception as e:
-        st.error(f"Error loading resources: {str(e)[:100]}")
+    except Exception:
         return None, None
 
 # Load model based on selection
 if "Mini" in model_type:
-    # For mini model, use hardcoded labels
     actions = {0: 'banana', 1: 'jacket', 2: 'cry', 3: 'catch', 4: 'pop'}
     try:
         model = joblib.load(MODEL_FILE)
         MODEL_LOADED = True
     except:
-        st.error(f"Failed to load model: {MODEL_FILE}")
         MODEL_LOADED = False
         model = None
 else:
@@ -695,115 +541,90 @@ st.markdown("""
 
 # Check if model loaded successfully
 if not MODEL_LOADED:
-    st.error(f"""
-    ### MODEL LOADING REQUIRED
+    st.markdown("""
+    <div class='error-box'>
+        <h3 style='margin: 0;'>MODEL LOADING REQUIRED</h3>
+        <p>Please ensure these files are in the same folder:</p>
+        <ul>
+            <li><code>{}</code> - Selected model file</li>
+            <li><code>{}</code> - Label mapping (for full models)</li>
+        </ul>
+    </div>
+    """.format(MODEL_FILE, LABEL_MAP_FILE), unsafe_allow_html=True)
     
-    **Please ensure these files are in the same folder as app.py:**
-    
-    **For Mini-XGBoost (5 words):**
-    - `{MODEL_FILES['minixgb']}` - Mini model file
-    
-    **For Bi-LSTM (14 words):**
-    - `{MODEL_FILES['bilstm']}` - Deep learning model
-    - `{LABEL_MAP_FILE}` - Label mapping JSON
-    
-    **For XGBoost (14 words):**
-    - `{MODEL_FILES['xgboost']}` - Machine learning model  
-    - `{LABEL_MAP_FILE}` - Label mapping JSON
-    
-    **Current selection:** {model_type}
-    **Expected file:** `{MODEL_FILE}`
-    """)
-    
-    # Show file existence check
+    # Show file status
     st.markdown("### FILE STATUS")
-    col1, col2, col3 = st.columns(3)
+    col1, col2 = st.columns(2)
     
     with col1:
         if os.path.exists(MODEL_FILE):
-            st.success(f"{MODEL_FILE} - Found")
+            st.success(f"✓ {MODEL_FILE}")
         else:
-            st.error(f"{MODEL_FILE} - Missing")
+            st.error(f"✗ {MODEL_FILE}")
     
     with col2:
         if os.path.exists(LABEL_MAP_FILE):
-            st.success(f"{LABEL_MAP_FILE} - Found")
+            st.success(f"✓ {LABEL_MAP_FILE}")
         else:
-            st.warning(f"{LABEL_MAP_FILE} - Missing")
-    
-    with col3:
-        if TF_AVAILABLE:
-            st.success("TensorFlow - Installed")
-        else:
-            st.error("TensorFlow - Not installed")
+            st.warning(f"⚠ {LABEL_MAP_FILE}")
     
     st.stop()
 
 # Create main layout
-col1, col2 = st.columns([0.65, 0.35])
+col1, col2 = st.columns([0.6, 0.4])
 
 with col1:
-    st.markdown("### LIVE CAMERA FEED")
+    st.markdown("### LIVE FEED")
     
-    # Show selected mode
-    st.info(f"**Selected Mode:** {camera_mode}")
-    
-    # Camera controls
+    # Show current mode
     if camera_mode == "Live Camera":
-        col_start, col_stop = st.columns(2)
-        with col_start:
-            run_camera = st.button("START LIVE CAMERA", use_container_width=True)
-        with col_stop:
-            stop_button = st.button("STOP CAMERA", use_container_width=True)
-            if stop_button:
-                run_camera = False
-                st.rerun()
-    elif camera_mode == "Demo Mode":
-        run_camera = st.button("START DEMO MODE", use_container_width=True)
-        stop_button = False
-    else:  # Upload Video
-        uploaded_file = st.file_uploader("Choose a video file", type=['mp4', 'avi', 'mov'])
-        if uploaded_file:
-            run_camera = st.button("PROCESS VIDEO", use_container_width=True)
-        else:
-            run_camera = False
+        st.info("**Mode:** Live Camera - Requires camera access")
+    else:
+        st.info("**Mode:** Demo - No camera required")
+    
+    # Start button
+    if st.button("START RECOGNITION", key="start_button", use_container_width=True):
+        st.session_state.running = True
+    if st.button("STOP", key="stop_button", use_container_width=True):
+        st.session_state.running = False
+        st.rerun()
     
     # Camera feed container
-    camera_container = st.empty()
+    camera_placeholder = st.empty()
 
 with col2:
     st.markdown("### RECOGNITION RESULTS")
     
     # Results container
-    result_container = st.empty()
+    result_placeholder = st.empty()
     
     # System status
     st.markdown("#### SYSTEM STATUS")
     status_col1, status_col2 = st.columns(2)
     
     with status_col1:
-        camera_status = st.empty()
-        camera_status.markdown("""
+        status_camera = st.empty()
+        status_camera.markdown("""
         <div class='status-box status-inactive'>
             Camera: Offline
         </div>
         """, unsafe_allow_html=True)
     
     with status_col2:
-        model_status = st.empty()
-        model_status.markdown("""
+        status_model = st.empty()
+        status_model.markdown("""
         <div class='status-box status-inactive'>
             Model: Idle
         </div>
         """, unsafe_allow_html=True)
     
     # Performance metrics
-    st.markdown("#### PERFORMANCE METRICS")
+    st.markdown("#### PERFORMANCE")
     metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
     
     with metrics_col1:
-        fps_display = st.empty()
-        fps_display.markdown("""
+        metric_fps = st.empty()
+        metric_fps.markdown("""
         <div class='metric-box'>
             <div class='metric-value'>0</div>
             <div class='metric-label'>FPS</div>
@@ -811,8 +632,8 @@ with col2:
         """, unsafe_allow_html=True)
     
     with metrics_col2:
-        conf_display = st.empty()
-        conf_display.markdown("""
+        metric_conf = st.empty()
+        metric_conf.markdown("""
         <div class='metric-box'>
             <div class='metric-value'>0%</div>
             <div class='metric-label'>Confidence</div>
@@ -820,8 +641,8 @@ with col2:
         """, unsafe_allow_html=True)
     
     with metrics_col3:
-        buffer_display = st.empty()
-        buffer_display.markdown("""
+        metric_buffer = st.empty()
+        metric_buffer.markdown("""
         <div class='metric-box'>
             <div class='metric-value'>0%</div>
             <div class='metric-label'>Buffer</div>
@@ -832,326 +653,261 @@ with col2:
 # RECOGNITION LOOP
 # ==========================================
 
-sequence = deque(maxlen=SEQUENCE_LENGTH)
-prediction_history = []
-fps_buffer = deque(maxlen=30)
-avg_fps = 0
+# Initialize session state
+if 'running' not in st.session_state:
+    st.session_state.running = False
+if 'sequence' not in st.session_state:
+    st.session_state.sequence = deque(maxlen=SEQUENCE_LENGTH)
+if 'predictions' not in st.session_state:
+    st.session_state.predictions = []
+if 'frame_count' not in st.session_state:
+    st.session_state.frame_count = 0
+if 'start_time' not in st.session_state:
+    st.session_state.start_time = time.time()
+if 'fps_buffer' not in st.session_state:
+    st.session_state.fps_buffer = deque(maxlen=30)
 
-if run_camera:
-    cap = None
-    demo_mode = camera_mode == "Demo Mode"
-    video_mode = camera_mode == "Upload Video" and uploaded_file is not None
-    
-    if camera_mode == "Live Camera":
-        # Try to find a working camera
-        camera_index = find_working_camera()
-        if camera_index >= 0:
-            cap = cv2.VideoCapture(camera_index)
-            if not cap.isOpened():
-                st.markdown("""
-                <div class='error-message'>
-                    <strong>Camera Error:</strong> Could not open camera at index {camera_index}. 
-                    Please try Demo Mode or check camera permissions.
-                </div>
-                """, unsafe_allow_html=True)
-                demo_mode = True
-        else:
-            st.markdown("""
-            <div class='warning-message'>
-                <strong>No camera detected.</strong> Switching to Demo Mode for testing.
-                You can still test the ASL recognition system.
-            </div>
-            """, unsafe_allow_html=True)
-            demo_mode = True
-    
-    elif video_mode:
-        # Save uploaded video to temp file
-        import tempfile
-        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix='.mp4')
-        temp_file.write(uploaded_file.read())
-        temp_file.close()
-        cap = cv2.VideoCapture(temp_file.name)
-    
+if st.session_state.running:
     # Update status
-    if demo_mode:
-        camera_status.markdown("""
-        <div class='status-box status-warning'>
-            Mode: Demo
-        </div>
-        """, unsafe_allow_html=True)
-    elif cap and cap.isOpened():
-        camera_status.markdown("""
-        <div class='status-box status-active'>
-            Camera: Active
-        </div>
-        """, unsafe_allow_html=True)
-    else:
-        camera_status.markdown("""
-        <div class='status-box status-inactive'>
-            Camera: Error
-        </div>
-        """, unsafe_allow_html=True)
-        demo_mode = True
+    status_camera.markdown(f"""
+    <div class='status-box status-active'>
+        Camera: {camera_mode}
+    </div>
+    """, unsafe_allow_html=True)
     
-    model_status.markdown("""
+    status_model.markdown("""
     <div class='status-box status-active'>
         Model: Processing
     </div>
     """, unsafe_allow_html=True)
     
+    # Initialize camera if in live mode
+    cap = None
+    if camera_mode == "Live Camera":
+        try:
+            # Try different camera indices
+            for idx in [0, 1, 2]:
+                cap = cv2.VideoCapture(idx)
+                if cap.isOpened():
+                    break
+                cap.release()
+        except:
+            cap = None
+    
+    # Initialize MediaPipe
     with mp_holistic.Holistic(
         min_detection_confidence=0.5,
-        min_tracking_confidence=0.5,
-        model_complexity=1
+        min_tracking_confidence=0.5
     ) as holistic:
         
-        frame_count = 0
-        start_time = time.time()
-        frame_placeholder = camera_container.empty()
+        frame_placeholder = camera_placeholder.empty()
         
-        # For demo mode, simulate predictions
-        demo_predictions = ['hello', 'thanks', 'yes', 'no', 'please', 'sorry', 'help']
-        demo_index = 0
-        
-        while run_camera:
-            # Calculate FPS
-            frame_count += 1
-            current_time = time.time()
-            elapsed_time = current_time - start_time
-            
-            if elapsed_time > 0:
-                current_fps = frame_count / elapsed_time
-                fps_buffer.append(current_fps)
-                avg_fps = np.mean(fps_buffer) if fps_buffer else 0
+        # Main processing loop
+        try:
+            while st.session_state.running:
+                # Calculate FPS
+                st.session_state.frame_count += 1
+                elapsed_time = time.time() - st.session_state.start_time
                 
-                # Update FPS display
-                fps_display.markdown(f"""
+                if elapsed_time > 0:
+                    current_fps = st.session_state.frame_count / elapsed_time
+                    st.session_state.fps_buffer.append(current_fps)
+                    avg_fps = np.mean(st.session_state.fps_buffer) if st.session_state.fps_buffer else 0
+                    
+                    # Update FPS display
+                    metric_fps.markdown(f"""
+                    <div class='metric-box'>
+                        <div class='metric-value'>{int(avg_fps)}</div>
+                        <div class='metric-label'>FPS</div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Get frame
+                if camera_mode == "Live Camera" and cap and cap.isOpened():
+                    ret, frame = cap.read()
+                    if ret:
+                        image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+                        image.flags.writeable = False
+                        results = holistic.process(image)
+                        image.flags.writeable = True
+                        image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
+                        
+                        # Draw landmarks
+                        if draw_landmarks:
+                            if results.pose_landmarks:
+                                mp_drawing.draw_landmarks(
+                                    image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
+                                    mp_drawing.DrawingSpec(color=(100, 117, 186), thickness=2),
+                                    mp_drawing.DrawingSpec(color=(100, 117, 186), thickness=2)
+                                )
+                            if results.left_hand_landmarks:
+                                mp_drawing.draw_landmarks(
+                                    image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+                                    mp_drawing.DrawingSpec(color=(121, 44, 250), thickness=2),
+                                    mp_drawing.DrawingSpec(color=(121, 44, 250), thickness=2)
+                                )
+                            if results.right_hand_landmarks:
+                                mp_drawing.draw_landmarks(
+                                    image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+                                    mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2),
+                                    mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=2)
+                                )
+                        
+                        # Extract features
+                        keypoints = extract_features(results)
+                        st.session_state.sequence.append(keypoints)
+                    else:
+                        image = create_dummy_frame()
+                else:
+                    # Demo mode
+                    image = create_dummy_frame()
+                    results = None
+                    
+                    # Simulate feature extraction for demo
+                    if st.session_state.frame_count % 10 == 0:
+                        dummy_features = np.random.randn(198).astype(np.float32)
+                        st.session_state.sequence.append(dummy_features)
+                
+                # Update buffer display
+                buffer_fill = min(100, int((len(st.session_state.sequence) / SEQUENCE_LENGTH) * 100))
+                metric_buffer.markdown(f"""
                 <div class='metric-box'>
-                    <div class='metric-value'>{int(avg_fps)}</div>
-                    <div class='metric-label'>FPS</div>
+                    <div class='metric-value'>{buffer_fill}%</div>
+                    <div class='metric-label'>Buffer</div>
                 </div>
                 """, unsafe_allow_html=True)
+                
+                # Make prediction when buffer is full
+                current_prediction = None
+                current_confidence = 0
+                
+                if len(st.session_state.sequence) == SEQUENCE_LENGTH:
+                    try:
+                        if camera_mode == "Demo Mode":
+                            # Demo predictions
+                            demo_words = ['hello', 'thanks', 'yes', 'no', 'please', 'help', 'water']
+                            current_prediction = np.random.choice(demo_words)
+                            current_confidence = np.random.uniform(0.7, 0.95)
+                        elif IS_DEEP_LEARNING:
+                            input_data = np.expand_dims(list(st.session_state.sequence), axis=0).astype(np.float32)
+                            predictions = model.predict(input_data, verbose=0)[0]
+                            best_idx = np.argmax(predictions)
+                            current_confidence = predictions[best_idx]
+                            current_prediction = actions.get(best_idx, "Unknown")
+                        else:
+                            input_data = feature_engineering_for_ml(st.session_state.sequence)
+                            probabilities = model.predict_proba(input_data)[0]
+                            best_idx = np.argmax(probabilities)
+                            current_confidence = probabilities[best_idx]
+                            current_prediction = actions.get(best_idx, "Unknown")
+                        
+                        if current_confidence > conf_threshold:
+                            st.session_state.predictions.append((current_prediction, current_confidence))
+                            if len(st.session_state.predictions) > 5:
+                                st.session_state.predictions.pop(0)
+                            
+                            metric_conf.markdown(f"""
+                            <div class='metric-box'>
+                                <div class='metric-value'>{int(current_confidence*100)}%</div>
+                                <div class='metric-label'>Confidence</div>
+                            </div>
+                            """, unsafe_allow_html=True)
+                    except:
+                        pass
+                
+                # Display prediction
+                if current_prediction:
+                    result_placeholder.markdown(f"""
+                    <div class='prediction-container'>
+                        <h3 style='color: #4a5568; margin: 0;'>DETECTED SIGN</h3>
+                        <div class='prediction-word'>{current_prediction.upper()}</div>
+                        <div class='confidence-bar-container'>
+                            <div class='confidence-fill' style='width: {int(current_confidence*100)}%'></div>
+                        </div>
+                        <p class='confidence-text'>Confidence: {int(current_confidence*100)}%</p>
+                    </div>
+                    """, unsafe_allow_html=True)
+                    
+                    # Add overlay to frame
+                    if camera_mode == "Live Camera" and 'frame' in locals():
+                        cv2.putText(image, f"Sign: {current_prediction}", 
+                                  (20, 40), cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 255), 2)
+                else:
+                    result_placeholder.markdown(f"""
+                    <div class='prediction-container'>
+                        <h3 style='color: #4a5568; margin: 0;'>ANALYZING GESTURE</h3>
+                        <div style='font-size: 3rem; color: #a0aec0; margin: 1.5rem;'>ASL</div>
+                        <p style='color: #718096;'>Processing: {len(st.session_state.sequence)}/{SEQUENCE_LENGTH}</p>
+                        <div class='progress-container'>
+                            <div class='progress-fill' style='width: {buffer_fill}%'></div>
+                        </div>
+                    </div>
+                    """, unsafe_allow_html=True)
+                
+                # Add FPS counter
+                if show_fps and avg_fps > 0 and camera_mode == "Live Camera":
+                    cv2.putText(image, f"FPS: {int(avg_fps)}", 
+                              (500, 30), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
+                
+                # Display frame - FIXED: No use_container_width parameter
+                try:
+                    frame_placeholder.image(image, channels="BGR")
+                except:
+                    # Fallback for Streamlit compatibility
+                    frame_placeholder.image(image)
+                
+                # Small delay to prevent freezing
+                time.sleep(0.03)
+                
+        except Exception as e:
+            st.error(f"Processing error: {str(e)[:100]}")
+        finally:
+            if cap:
+                cap.release()
             
-            # Get frame based on mode
-            if demo_mode:
-                # Create dummy frame for demo
-                image = create_dummy_frame()
-                results = None
-            elif cap and cap.isOpened():
-                # Read from camera or video
-                ret, frame = cap.read()
-                if not ret:
-                    if video_mode:
-                        # Loop video
-                        cap.set(cv2.CAP_PROP_POS_FRAMES, 0)
-                        ret, frame = cap.read()
-                    else:
-                        break
-                
-                # Process frame
-                image = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                image.flags.writeable = False
-                results = holistic.process(image)
-                image.flags.writeable = True
-                image = cv2.cvtColor(image, cv2.COLOR_RGB2BGR)
-                
-                # Draw landmarks if enabled
-                if draw_landmarks and results and results.pose_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(100, 117, 186), thickness=2, circle_radius=3),
-                        mp_drawing.DrawingSpec(color=(100, 117, 186), thickness=2, circle_radius=3)
-                    )
-                
-                if draw_landmarks and results and results.left_hand_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(121, 44, 250), thickness=3, circle_radius=4),
-                        mp_drawing.DrawingSpec(color=(121, 44, 250), thickness=3, circle_radius=4)
-                    )
-                
-                if draw_landmarks and results and results.right_hand_landmarks:
-                    mp_drawing.draw_landmarks(
-                        image, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
-                        mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=3, circle_radius=4),
-                        mp_drawing.DrawingSpec(color=(245, 66, 230), thickness=3, circle_radius=4)
-                    )
-            else:
-                break
-            
-            # Extract features if not in demo mode
-            if not demo_mode and results:
-                keypoints = extract_features(results)
-                sequence.append(keypoints)
-            elif demo_mode:
-                # Simulate feature extraction for demo
-                if frame_count % 10 == 0:  # Add dummy data every 10 frames
-                    dummy_features = np.random.randn(198).astype(np.float32)
-                    sequence.append(dummy_features)
-            
-            # Update buffer display
-            buffer_fill = min(100, int((len(sequence) / SEQUENCE_LENGTH) * 100))
-            buffer_display.markdown(f"""
-            <div class='metric-box'>
-                <div class='metric-value'>{buffer_fill}%</div>
-                <div class='metric-label'>Buffer</div>
+            # Reset status
+            status_camera.markdown("""
+            <div class='status-box status-inactive'>
+                Camera: Offline
             </div>
             """, unsafe_allow_html=True)
             
-            # Perform inference when buffer is full
-            current_prediction = None
-            current_confidence = 0
+            status_model.markdown("""
+            <div class='status-box status-inactive'>
+                Model: Idle
+            </div>
+            """, unsafe_allow_html=True)
             
-            if len(sequence) == SEQUENCE_LENGTH:
-                try:
-                    if demo_mode:
-                        # Demo mode predictions
-                        current_prediction = demo_predictions[demo_index % len(demo_predictions)]
-                        current_confidence = np.random.uniform(0.7, 0.95)
-                        demo_index += 1
-                    elif IS_DEEP_LEARNING:
-                        # Bi-LSTM inference
-                        input_data = np.expand_dims(sequence, axis=0).astype(np.float32)
-                        predictions = model.predict(input_data, verbose=0)[0]
-                        best_idx = np.argmax(predictions)
-                        confidence = predictions[best_idx]
-                        current_prediction = actions.get(best_idx, "Unknown")
-                        current_confidence = confidence
-                    else:
-                        # XGBoost inference
-                        input_data = feature_engineering_for_ml(sequence)
-                        probabilities = model.predict_proba(input_data)[0]
-                        best_idx = np.argmax(probabilities)
-                        confidence = probabilities[best_idx]
-                        current_prediction = actions.get(best_idx, "Unknown")
-                        current_confidence = confidence
-                    
-                    # Only update if confidence meets threshold
-                    if current_confidence > conf_threshold:
-                        # Add to history
-                        prediction_history.append((current_prediction, current_confidence))
-                        if len(prediction_history) > 5:
-                            prediction_history.pop(0)
-                        
-                        # Update confidence display
-                        conf_display.markdown(f"""
+            # Show summary
+            if st.session_state.predictions:
+                st.markdown("---")
+                st.markdown("### SESSION SUMMARY")
+                cols = st.columns(min(5, len(st.session_state.predictions)))
+                for idx, (pred, conf) in enumerate(st.session_state.predictions[:5]):
+                    with cols[idx % len(cols)]:
+                        st.markdown(f"""
                         <div class='metric-box'>
-                            <div class='metric-value'>{int(current_confidence*100)}%</div>
-                            <div class='metric-label'>Confidence</div>
+                            <div style='color: #667eea; font-size: 1.2rem; font-weight: 700;'>{pred.upper()}</div>
+                            <div style='color: #718096; font-size: 0.9rem;'>{int(conf*100)}%</div>
                         </div>
                         """, unsafe_allow_html=True)
-                        
-                except Exception as e:
-                    pass
             
-            # Display prediction
-            if current_prediction:
-                result_container.markdown(f"""
-                <div class='prediction-container'>
-                    <h3 style='color: #4a5568; margin: 0;'>DETECTED SIGN</h3>
-                    <div class='prediction-word'>{current_prediction.upper()}</div>
-                    <div class='confidence-bar-container'>
-                        <div class='confidence-fill' style='width: {int(current_confidence*100)}%'></div>
-                    </div>
-                    <p class='confidence-text'>Confidence: {int(current_confidence*100)}%</p>
-                    {('<p style="color: #718096; font-size: 0.9rem;">Demo Mode - Simulated Prediction</p>' if demo_mode else '')}
-                </div>
-                """, unsafe_allow_html=True)
-                
-                # Add overlay to video frame
-                if not demo_mode:
-                    cv2.rectangle(image, (0, 0), (640, 80), (0, 0, 0), -1)
-                    cv2.putText(
-                        image, f"Sign: {current_prediction}", 
-                        (20, 40), cv2.FONT_HERSHEY_DUPLEX, 1.2, (255, 255, 255), 3
-                    )
-                    cv2.putText(
-                        image, f"Confidence: {int(current_confidence*100)}%", 
-                        (20, 70), cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 100), 2
-                    )
-            else:
-                # Show waiting state
-                mode_text = "Demo" if demo_mode else "Live"
-                result_container.markdown(f"""
-                <div class='prediction-container'>
-                    <h3 style='color: #4a5568; margin: 0;'>ANALYZING GESTURE</h3>
-                    <div style='font-size: 3.5rem; color: #a0aec0; margin: 2rem;'>ASL</div>
-                    <p style='color: #718096; font-size: 1.1rem;'>
-                        Processing {len(sequence)}/{SEQUENCE_LENGTH} frames
-                    </p>
-                    <div class='progress-container'>
-                        <div class='progress-fill' style='width: {buffer_fill}%'></div>
-                    </div>
-                    <p style='color: #718096; font-size: 0.9rem; margin-top: 1rem;'>
-                        Mode: {mode_text} | Model: {model_type.split(' ')[0]}
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
-            
-            # Add FPS counter to frame if enabled
-            if show_fps and avg_fps > 0 and not demo_mode:
-                cv2.putText(
-                    image, f"FPS: {int(avg_fps)}", 
-                    (520, 40), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (0, 255, 255), 2
-                )
-            
-            # Display frame
-            with camera_container.container():
-                if demo_mode:
-                    st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
-                    frame_placeholder.image(image, channels="BGR", use_container_width=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-                    # Add demo mode indicator
-                    st.info("**Demo Mode Active:** Using simulated camera feed. Connect a camera for live recognition.")
-                else:
-                    st.markdown('<div class="camera-frame">', unsafe_allow_html=True)
-                    frame_placeholder.image(image, channels="BGR", use_container_width=True)
-                    st.markdown('</div>', unsafe_allow_html=True)
-    
-    # Cleanup
-    if cap:
-        cap.release()
-    
-    # Final status update
-    camera_status.markdown("""
-    <div class='status-box status-inactive'>
-        Camera: Offline
-    </div>
-    """, unsafe_allow_html=True)
-    
-    model_status.markdown("""
-    <div class='status-box status-inactive'>
-        Model: Idle
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Show session summary
-    if prediction_history:
-        st.markdown("---")
-        st.markdown("### SESSION SUMMARY")
-        cols = st.columns(len(prediction_history))
-        for idx, (pred, conf) in enumerate(prediction_history):
-            with cols[idx]:
-                color = "#667eea" if conf > 0.8 else "#dd6b20" if conf > 0.6 else "#a0aec0"
-                st.markdown(f"""
-                <div class='metric-box'>
-                    <h4 style='color: {color};'>{pred.upper()}</h4>
-                    <p style='color: #718096; font-size: 0.9rem; font-weight: 600;'>
-                        {int(conf*100)}% confidence
-                    </p>
-                </div>
-                """, unsafe_allow_html=True)
+            # Clear session state
+            st.session_state.sequence.clear()
+            st.session_state.predictions.clear()
+            st.session_state.frame_count = 0
+            st.session_state.start_time = time.time()
 else:
     # Welcome state
-    result_container.markdown("""
+    result_placeholder.markdown("""
     <div class='prediction-container'>
         <h2 style='color: #2d3748;'>READY FOR RECOGNITION</h2>
-        <p style='color: #718096; margin: 1rem 0; font-size: 1.2rem;'>
-            Select camera mode and click <strong style='color: #667eea;'>START</strong> to begin
+        <p style='color: #718096; margin: 1rem 0;'>
+            Select mode and click START to begin ASL translation
         </p>
-        <div style='font-size: 5rem; color: #667eea; margin: 1.5rem; font-weight: 800;'>ASL</div>
-        <p style='color: #718096; font-size: 1rem;'>
-            Three modes available: Live Camera, Demo Mode, or Upload Video
+        <div style='font-size: 4rem; color: #667eea; margin: 1rem;'>ASL</div>
+        <p style='color: #718096; font-size: 0.9rem;'>
+            Choose between Live Camera or Demo Mode
         </p>
     </div>
     """, unsafe_allow_html=True)
@@ -1161,81 +917,73 @@ else:
 # ==========================================
 
 st.markdown("---")
-footer_col1, footer_col2, footer_col3 = st.columns(3)
 
-with footer_col1:
+col_f1, col_f2, col_f3 = st.columns(3)
+
+with col_f1:
     st.markdown("""
-    ### QUICK START
-    1. Select camera mode
+    ### GETTING STARTED
+    1. Select operation mode
     2. Choose AI model
     3. Adjust settings
     4. Click Start
     """)
 
-with footer_col2:
+with col_f2:
     st.markdown("""
-    ### CAMERA HELP
-    - **Live:** Requires camera permission
-    - **Demo:** No camera needed
-    - **Upload:** Use video files
-    - Mobile: Use Chrome/Safari
+    ### TIPS
+    - Good lighting for accuracy
+    - Clear background
+    - Steady hand movements
+    - Live mode needs camera
     """)
 
-with footer_col3:
+with col_f3:
     st.markdown("""
-    ### SYSTEM INFO
-    - Sequence Length: 50 frames
-    - Models: 3 AI architectures
-    - Processing: Real-time
-    - Output: Word + Confidence
+    ### SYSTEM
+    - Sequence: 50 frames
+    - Real-time processing
+    - Multiple AI models
+    - Confidence scoring
     """)
 
 st.markdown("---")
-st.caption(f"ASL Recognition System v3.0 | Model: {model_type} | Mode: {camera_mode}")
+st.caption(f"ASL Recognition System | Model: {model_type} | Mode: {camera_mode}")
 
 # ==========================================
-# TROUBLESHOOTING SECTION
+# HELP SECTION
 # ==========================================
 
-with st.expander("TROUBLESHOOTING GUIDE"):
-    col_t1, col_t2 = st.columns(2)
+with st.expander("HELP & TROUBLESHOOTING"):
+    st.markdown("""
+    ### CAMERA ISSUES
     
-    with col_t1:
-        st.markdown("""
-        ### CAMERA ISSUES
-        
-        **Browser Permissions:**
-        1. Click the camera/lock icon in address bar
-        2. Allow camera access
-        3. Refresh the page
-        
-        **Browser Compatibility:**
-        - Chrome: Best support
-        - Firefox: Good support
-        - Safari: Mobile only
-        - Edge: Limited support
-        
-        **Mobile Devices:**
-        - Use Chrome or Safari
-        - Grant camera permission
-        - Landscape mode recommended
-        """)
+    **Live Camera not working:**
+    1. Ensure camera is connected
+    2. Grant camera permission in browser
+    3. Try a different browser (Chrome recommended)
+    4. Close other apps using camera
     
-    with col_t2:
-        st.markdown("""
-        ### MODEL ISSUES
-        
-        **File Requirements:**
-        - All files in same folder
-        - Correct file names:
-          - `bilstm_model_2.keras`
-          - `xgboost_asl.pkl`
-          - `xgb_model.pkl`
-          - `label_map_2.json`
-        
-        **Performance Tips:**
-        - Use XGBoost for speed
-        - Demo Mode for testing
-        - Reduce confidence threshold
-        - Good lighting for accuracy
-        """)
+    **For Demo Mode:**
+    - No camera required
+    - Simulated predictions
+    - Perfect for testing
+    
+    ### MODEL FILES
+    
+    **Required files in same folder:**
+    - `app.py` - This application
+    - `label_map_2.json` - Label definitions
+    - One of these model files:
+        - `bilstm_model_2.keras` (Bi-LSTM)
+        - `xgboost_asl.pkl` (XGBoost)
+        - `xgb_model.pkl` (Mini)
+    
+    ### PERFORMANCE
+    
+    **For best results:**
+    - Use XGBoost for speed
+    - Use Bi-LSTM for accuracy
+    - Adjust confidence threshold
+    - Ensure good lighting
+    """)
