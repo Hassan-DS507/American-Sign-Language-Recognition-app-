@@ -95,13 +95,13 @@ mp_drawing = mp.solutions.drawing_utils
 
 st.set_page_config(
     page_title="ASL Recognition System",
-    page_icon="🤟",
+    page_icon="",
     layout="wide",
     initial_sidebar_state="expanded"
 )
 
 # ==========================================
-# CUSTOM CSS (Professional Design)
+# CUSTOM CSS (Professional Design - No Emojis)
 # ==========================================
 
 st.markdown("""
@@ -285,6 +285,15 @@ st.markdown("""
         border-radius: 5px;
         transition: width 0.5s ease;
     }
+    
+    /* Icons */
+    .icon-camera:before { content: "📷 "; }
+    .icon-model:before { content: "🤖 "; }
+    .icon-fps:before { content: "⚡ "; }
+    .icon-confidence:before { content: "🎯 "; }
+    .icon-buffer:before { content: "📊 "; }
+    .icon-start:before { content: "🚀 "; }
+    .icon-stop:before { content: "⏹️ "; }
 </style>
 """, unsafe_allow_html=True)
 
@@ -300,12 +309,12 @@ st.sidebar.markdown("""
             text-align: center;
             margin-bottom: 2rem;
             box-shadow: 0 6px 20px rgba(0,0,0,0.1);'>
-    <h2 style='margin: 0; font-size: 1.8rem;'>⚙️ Control Panel</h2>
+    <h2 style='margin: 0; font-size: 1.8rem;'>CONTROL PANEL</h2>
 </div>
 """, unsafe_allow_html=True)
 
 # Model Selection
-st.sidebar.markdown("### 🤖 Model Architecture")
+st.sidebar.markdown("### MODEL ARCHITECTURE")
 model_type = st.sidebar.selectbox(
     "",
     ("Bi-LSTM (14 words)", 
@@ -315,7 +324,7 @@ model_type = st.sidebar.selectbox(
 )
 
 # Configuration Settings
-st.sidebar.markdown("### ⚙️ Configuration Settings")
+st.sidebar.markdown("### CONFIGURATION SETTINGS")
 conf_threshold = st.sidebar.slider(
     "Confidence Threshold", 
     0.0, 1.0, CONFIDENCE_THRESHOLD, 0.05,
@@ -327,7 +336,7 @@ show_fps = st.sidebar.checkbox("Display FPS Counter", value=True,
                                help="Show frames per second counter")
 
 # Model Information
-st.sidebar.markdown("### 📊 Model Information")
+st.sidebar.markdown("### MODEL INFORMATION")
 
 # Set model file based on selection
 if "Bi-LSTM" in model_type:
@@ -343,7 +352,7 @@ if "Bi-LSTM" in model_type:
         </div>
         """, unsafe_allow_html=True)
     else:
-        st.sidebar.error("⚠️ TensorFlow not available. Bi-LSTM will not work.")
+        st.sidebar.error("TensorFlow not available. Bi-LSTM will not work.")
 elif "XGBoost" in model_type and "Mini" not in model_type:
     MODEL_FILE = MODEL_FILES['xgboost']
     IS_DEEP_LEARNING = False
@@ -402,7 +411,7 @@ def fix_keras_model(model_path):
             )
             return model
         except Exception as e:
-            st.error(f"❌ Failed to load Keras model: {str(e)[:100]}")
+            st.error(f"Failed to load Keras model: {str(e)[:100]}")
             return None
 
 # ==========================================
@@ -545,10 +554,10 @@ def load_models_and_labels(_model_file, is_dl):
         return model, actions
         
     except FileNotFoundError:
-        st.error(f"❌ Model file '{_model_file}' not found")
+        st.error(f"Model file '{_model_file}' not found")
         return None, None
     except Exception as e:
-        st.error(f"❌ Error loading resources: {str(e)[:100]}")
+        st.error(f"Error loading resources: {str(e)[:100]}")
         return None, None
 
 # Load model based on selection
@@ -559,7 +568,7 @@ if "Mini" in model_type:
         model = joblib.load(MODEL_FILE)
         MODEL_LOADED = True
     except:
-        st.error(f"❌ Failed to load model: {MODEL_FILE}")
+        st.error(f"Failed to load model: {MODEL_FILE}")
         MODEL_LOADED = False
         model = None
 else:
@@ -573,7 +582,7 @@ else:
 # Header
 st.markdown("""
 <div class='main-header'>
-    <h1 class='main-title'>🤟 ASL Recognition System</h1>
+    <h1 class='main-title'>ASL Recognition System</h1>
     <p class='sub-title'>Real-time American Sign Language Translation with AI</p>
 </div>
 """, unsafe_allow_html=True)
@@ -581,7 +590,7 @@ st.markdown("""
 # Check if model loaded successfully
 if not MODEL_LOADED:
     st.error(f"""
-    ### ⚠️ Model Loading Required
+    ### MODEL LOADING REQUIRED
     
     **Please ensure these files are in the same folder as app.py:**
     
@@ -601,26 +610,26 @@ if not MODEL_LOADED:
     """)
     
     # Show file existence check
-    st.markdown("### 📁 File Status")
+    st.markdown("### FILE STATUS")
     col1, col2, col3 = st.columns(3)
     
     with col1:
         if os.path.exists(MODEL_FILE):
-            st.success(f"✅ {MODEL_FILE} - Found")
+            st.success(f"{MODEL_FILE} - Found")
         else:
-            st.error(f"❌ {MODEL_FILE} - Missing")
+            st.error(f"{MODEL_FILE} - Missing")
     
     with col2:
         if os.path.exists(LABEL_MAP_FILE):
-            st.success(f"✅ {LABEL_MAP_FILE} - Found")
+            st.success(f"{LABEL_MAP_FILE} - Found")
         else:
-            st.warning(f"⚠️ {LABEL_MAP_FILE} - Missing")
+            st.warning(f"{LABEL_MAP_FILE} - Missing")
     
     with col3:
         if TF_AVAILABLE:
-            st.success("✅ TensorFlow - Installed")
+            st.success("TensorFlow - Installed")
         else:
-            st.error("❌ TensorFlow - Not installed")
+            st.error("TensorFlow - Not installed")
     
     st.stop()
 
@@ -628,14 +637,14 @@ if not MODEL_LOADED:
 col1, col2 = st.columns([0.65, 0.35])
 
 with col1:
-    st.markdown("### 📷 Live Camera Feed")
+    st.markdown("### LIVE CAMERA FEED")
     
     # Camera controls
     col_start, col_stop = st.columns(2)
     with col_start:
-        run_camera = st.button("🚀 Start Recognition", use_container_width=True)
+        run_camera = st.button("START RECOGNITION", use_container_width=True)
     with col_stop:
-        stop_button = st.button("⏹️ Stop System", use_container_width=True)
+        stop_button = st.button("STOP SYSTEM", use_container_width=True)
         if stop_button:
             run_camera = False
             st.rerun()
@@ -644,20 +653,20 @@ with col1:
     camera_container = st.empty()
 
 with col2:
-    st.markdown("### 🎯 Recognition Results")
+    st.markdown("### RECOGNITION RESULTS")
     
     # Results container
     result_container = st.empty()
     
     # System status
-    st.markdown("#### 📊 System Status")
+    st.markdown("#### SYSTEM STATUS")
     status_col1, status_col2 = st.columns(2)
     
     with status_col1:
         camera_status = st.empty()
         camera_status.markdown("""
         <div class='status-box status-inactive'>
-            📷 Camera: Offline
+            Camera: Offline
         </div>
         """, unsafe_allow_html=True)
     
@@ -665,12 +674,12 @@ with col2:
         model_status = st.empty()
         model_status.markdown("""
         <div class='status-box status-inactive'>
-            🤖 Model: Idle
+            Model: Idle
         </div>
         """, unsafe_allow_html=True)
     
     # Performance metrics
-    st.markdown("#### ⚡ Performance Metrics")
+    st.markdown("#### PERFORMANCE METRICS")
     metrics_col1, metrics_col2, metrics_col3 = st.columns(3)
     
     with metrics_col1:
@@ -713,7 +722,7 @@ if run_camera:
     # Initialize camera
     cap = cv2.VideoCapture(0)
     if not cap.isOpened():
-        st.error("❌ Could not open camera. Please check camera connection.")
+        st.error("Could not open camera. Please check camera connection.")
         st.stop()
     
     cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
@@ -722,13 +731,13 @@ if run_camera:
     # Update status
     camera_status.markdown("""
     <div class='status-box status-active'>
-        📷 Camera: Active
+        Camera: Active
     </div>
     """, unsafe_allow_html=True)
     
     model_status.markdown("""
     <div class='status-box status-active'>
-        🤖 Model: Processing
+        Model: Processing
     </div>
     """, unsafe_allow_html=True)
     
@@ -764,7 +773,7 @@ if run_camera:
             # Read frame
             ret, frame = cap.read()
             if not ret:
-                st.warning("⚠️ Failed to read frame from camera")
+                st.warning("Failed to read frame from camera")
                 break
             
             # Process frame
@@ -853,7 +862,7 @@ if run_camera:
             if current_prediction:
                 result_container.markdown(f"""
                 <div class='prediction-container'>
-                    <h3 style='color: #4a5568; margin: 0;'>🎯 DETECTED SIGN</h3>
+                    <h3 style='color: #4a5568; margin: 0;'>DETECTED SIGN</h3>
                     <div class='prediction-word'>{current_prediction.upper()}</div>
                     <div class='confidence-bar-container'>
                         <div class='confidence-fill' style='width: {int(current_confidence*100)}%'></div>
@@ -876,8 +885,8 @@ if run_camera:
                 # Show waiting state
                 result_container.markdown(f"""
                 <div class='prediction-container'>
-                    <h3 style='color: #4a5568; margin: 0;'>🔍 ANALYZING GESTURE</h3>
-                    <div style='font-size: 3.5rem; color: #a0aec0; margin: 2rem;'>🤔</div>
+                    <h3 style='color: #4a5568; margin: 0;'>ANALYZING GESTURE</h3>
+                    <div style='font-size: 3.5rem; color: #a0aec0; margin: 2rem;'>---</div>
                     <p style='color: #718096; font-size: 1.1rem;'>
                         Processing {len(sequence)}/{SEQUENCE_LENGTH} frames
                     </p>
@@ -906,20 +915,20 @@ if run_camera:
     # Final status update
     camera_status.markdown("""
     <div class='status-box status-inactive'>
-        📷 Camera: Offline
+        Camera: Offline
     </div>
     """, unsafe_allow_html=True)
     
     model_status.markdown("""
     <div class='status-box status-inactive'>
-        🤖 Model: Idle
+        Model: Idle
     </div>
     """, unsafe_allow_html=True)
     
     # Show session summary
     if prediction_history:
         st.markdown("---")
-        st.markdown("### 📈 Session Summary")
+        st.markdown("### SESSION SUMMARY")
         cols = st.columns(len(prediction_history))
         for idx, (pred, conf) in enumerate(prediction_history):
             with cols[idx]:
@@ -936,11 +945,11 @@ else:
     # Welcome state
     result_container.markdown("""
     <div class='prediction-container'>
-        <h2 style='color: #4a5568;'>🎉 Ready for Recognition</h2>
+        <h2 style='color: #2d3748;'>READY FOR RECOGNITION</h2>
         <p style='color: #718096; margin: 1rem 0; font-size: 1.2rem;'>
-            Click <strong>🚀 Start Recognition</strong> to begin real-time ASL translation
+            Click <strong style='color: #667eea;'>START RECOGNITION</strong> to begin real-time ASL translation
         </p>
-        <div style='font-size: 5rem; color: #667eea; margin: 1.5rem;'>🤟</div>
+        <div style='font-size: 5rem; color: #667eea; margin: 1.5rem;'>ASL</div>
         <p style='color: #718096; font-size: 1rem;'>
             Ensure proper lighting and clear view of your hands
         </p>
@@ -956,7 +965,7 @@ footer_col1, footer_col2, footer_col3 = st.columns(3)
 
 with footer_col1:
     st.markdown("""
-    ### 🚀 Quick Start
+    ### QUICK START
     1. Select model type
     2. Adjust confidence threshold
     3. Click Start Recognition
@@ -965,7 +974,7 @@ with footer_col1:
 
 with footer_col2:
     st.markdown("""
-    ### 💡 Tips for Accuracy
+    ### TIPS FOR ACCURACY
     - Good lighting is essential
     - Keep hands in frame
     - Clear background
@@ -974,7 +983,7 @@ with footer_col2:
 
 with footer_col3:
     st.markdown("""
-    ### 🔧 System Info
+    ### SYSTEM INFO
     - Sequence Length: 50 frames
     - Processing: Real-time
     - Models: 3 AI architectures
@@ -982,4 +991,37 @@ with footer_col3:
     """)
 
 st.markdown("---")
-st.caption(f"ASL Recognition System v2.0 | Model: {model_type} | Made with ❤️")
+st.caption(f"ASL Recognition System v2.0 | Model: {model_type}")
+
+# ==========================================
+# TROUBLESHOOTING SECTION
+# ==========================================
+
+with st.expander("TROUBLESHOOTING"):
+    st.markdown("""
+    ### COMMON ISSUES
+    
+    **1. Camera not working:**
+    - Check camera permissions
+    - Ensure no other app is using the camera
+    - Try a different browser
+    
+    **2. Model not loading:**
+    - Ensure model files are in the same folder as app.py
+    - Check file names exactly match:
+        - `bilstm_model_2.keras`
+        - `xgboost_asl.pkl` 
+        - `xgb_model.pkl`
+        - `label_map_2.json`
+    
+    **3. Low FPS:**
+    - Disable skeleton overlay
+    - Reduce camera resolution in code
+    - Use XGBoost instead of Bi-LSTM
+    
+    **4. Low accuracy:**
+    - Increase confidence threshold
+    - Ensure good lighting
+    - Clear, plain background
+    - Hold signs for 1-2 seconds
+    """)
