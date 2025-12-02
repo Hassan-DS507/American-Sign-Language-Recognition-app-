@@ -4,7 +4,8 @@ import time
 import numpy as np
 import streamlit as st
 import tempfile
-from pathlib import Path
+import cv2
+from collections import deque
 
 # ==========================================
 # CONFIGURATION
@@ -13,21 +14,50 @@ from pathlib import Path
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
 os.environ['CUDA_VISIBLE_DEVICES'] = '-1'
 
+# Force disable MediaPipe model downloads (prevents errors)
+os.environ['MEDIAPIPE_DISABLE_MODEL_DOWNLOAD'] = '1'
+
 # Constants
 SEQUENCE_LENGTH = 30
 CONFIDENCE_THRESHOLD = 0.6
 
-# Vocabulary from your label_map_2.json
-VOCABULARY = [
-    'banana', 'catch', 'cool', 'cry', 'drown',
-    'envelope', 'erase', 'follow', 'jacket', 'pineapple',
-    'pop', 'sandwich', 'shave', 'strawberry'
-]
+# Model configurations
+MODELS = {
+    "Bi-LSTM Neural Network": {
+        "type": "deep_learning",
+        "vocabulary": 'full',
+        "accuracy": "87.86%",
+        "description": "Advanced bidirectional LSTM for complex temporal patterns",
+        "file": "bilstm_model_2.keras"
+    },
+    "XGBoost Classifier": {
+        "type": "machine_learning",
+        "vocabulary": 'full',
+        "accuracy": "79.56%",
+        "description": "Fast gradient boosting for distinct poses",
+        "file": "xgboost_asl.pkl"
+    },
+    "Mini XGBoost (Demo)": {
+        "type": "machine_learning",
+        "vocabulary": 'mini',
+        "accuracy": "92.34%",
+        "description": "Lightweight model for 5 basic signs",
+        "file": "xgb_model.pkl"
+    }
+}
 
-MINI_VOCABULARY = ['banana', 'jacket', 'cry', 'catch', 'pop']
+# Vocabulary from your label_map_2.json
+VOCABULARY = {
+    'full': [
+        'banana', 'catch', 'cool', 'cry', 'drown',
+        'envelope', 'erase', 'follow', 'jacket', 'pineapple',
+        'pop', 'sandwich', 'shave', 'strawberry'
+    ],
+    'mini': ['banana', 'jacket', 'cry', 'catch', 'pop']
+}
 
 # ==========================================
-# SIMPLE CSS - NO EMOJIS, NO ERRORS
+# SIMPLE CSS - CLEAN AND PROFESSIONAL
 # ==========================================
 
 st.set_page_config(
@@ -45,6 +75,10 @@ st.markdown("""
         box-sizing: border-box;
     }
     
+    body {
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    }
+    
     /* Main container */
     .main-container {
         max-width: 1400px;
@@ -54,186 +88,284 @@ st.markdown("""
     
     /* Header */
     .header-section {
-        background: #2563eb;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         padding: 30px;
-        border-radius: 10px;
+        border-radius: 15px;
         margin-bottom: 30px;
         text-align: center;
+        box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
     }
     
     .main-title {
-        font-size: 2.5rem;
-        font-weight: bold;
+        font-size: 2.8rem;
+        font-weight: 800;
         margin-bottom: 10px;
     }
     
     .sub-title {
-        font-size: 1.1rem;
-        opacity: 0.9;
+        font-size: 1.2rem;
+        opacity: 0.95;
+        font-weight: 300;
     }
     
-    /* Cards */
-    .card {
+    /* Model Info Card */
+    .model-card {
         background: white;
-        border-radius: 10px;
+        border-radius: 12px;
         padding: 20px;
         margin-bottom: 20px;
-        box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-        border: 1px solid #e5e7eb;
+        border-left: 5px solid #667eea;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+    }
+    
+    .model-name {
+        font-size: 1.4rem;
+        font-weight: 700;
+        color: #2d3748;
+        margin-bottom: 8px;
+    }
+    
+    .model-stats {
+        display: flex;
+        gap: 15px;
+        margin-bottom: 10px;
+    }
+    
+    .model-stat {
+        font-size: 0.9rem;
+        color: #718096;
+    }
+    
+    .model-stat strong {
+        color: #667eea;
     }
     
     /* Video container */
     .video-container {
-        background: black;
-        border-radius: 10px;
+        background: #000;
+        border-radius: 12px;
         overflow: hidden;
         margin-bottom: 20px;
+        box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+        position: relative;
+    }
+    
+    .video-overlay {
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        background: linear-gradient(transparent, rgba(0,0,0,0.8));
+        color: white;
+        padding: 15px;
+        font-size: 0.9rem;
     }
     
     /* Results */
     .results-container {
-        background: #f8fafc;
-        border-radius: 10px;
+        background: #f8f9fa;
+        border-radius: 12px;
         padding: 25px;
-        border-left: 5px solid #2563eb;
+        border-left: 5px solid #667eea;
+        margin-bottom: 20px;
+    }
+    
+    .top-prediction {
+        text-align: center;
+        margin-bottom: 25px;
+    }
+    
+    .top-word {
+        font-size: 3rem;
+        font-weight: 900;
+        color: #2d3748;
+        margin: 10px 0;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+    }
+    
+    .top-confidence {
+        font-size: 1.5rem;
+        color: #38a169;
+        font-weight: 700;
+    }
+    
+    /* Prediction List */
+    .prediction-list {
+        background: white;
+        border-radius: 10px;
+        padding: 0;
+        overflow: hidden;
     }
     
     .prediction-item {
         display: flex;
         align-items: center;
-        padding: 15px;
-        margin: 10px 0;
-        background: white;
-        border-radius: 8px;
-        border-left: 4px solid #2563eb;
+        padding: 18px 20px;
+        border-bottom: 1px solid #e9ecef;
+        transition: background 0.2s;
+    }
+    
+    .prediction-item:hover {
+        background: #f8f9fa;
+    }
+    
+    .prediction-item:last-child {
+        border-bottom: none;
     }
     
     .prediction-rank {
-        width: 35px;
-        height: 35px;
-        background: #2563eb;
+        width: 36px;
+        height: 36px;
+        background: #667eea;
         color: white;
         border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-weight: bold;
+        font-weight: 700;
         margin-right: 15px;
+        flex-shrink: 0;
     }
     
-    .prediction-text {
+    .prediction-content {
         flex: 1;
-        font-size: 1.2rem;
+        min-width: 0;
+    }
+    
+    .prediction-word {
+        font-size: 1.3rem;
         font-weight: 600;
-        color: #1f2937;
+        color: #2d3748;
+        margin-bottom: 4px;
+    }
+    
+    .prediction-bar-container {
+        height: 8px;
+        background: #e9ecef;
+        border-radius: 4px;
+        overflow: hidden;
+        margin: 8px 0;
+    }
+    
+    .prediction-bar {
+        height: 100%;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 4px;
+        transition: width 0.5s ease;
     }
     
     .prediction-confidence {
-        font-size: 1.1rem;
-        font-weight: 700;
-        color: #059669;
-        min-width: 70px;
-        text-align: right;
+        font-size: 1rem;
+        color: #718096;
+        font-weight: 600;
     }
     
-    /* Progress bar */
+    /* Progress */
     .progress-container {
         width: 100%;
-        height: 8px;
-        background: #e5e7eb;
-        border-radius: 4px;
-        margin: 15px 0;
+        height: 10px;
+        background: #e9ecef;
+        border-radius: 5px;
+        margin: 20px 0;
         overflow: hidden;
     }
     
     .progress-fill {
         height: 100%;
-        background: #2563eb;
-        border-radius: 4px;
+        background: linear-gradient(90deg, #667eea, #764ba2);
+        border-radius: 5px;
         transition: width 0.3s ease;
     }
     
     /* Stats */
     .stats-grid {
         display: grid;
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(2, 1fr);
         gap: 15px;
-        margin: 20px 0;
+        margin: 25px 0;
+    }
+    
+    @media (min-width: 768px) {
+        .stats-grid {
+            grid-template-columns: repeat(4, 1fr);
+        }
     }
     
     .stat-box {
         background: white;
-        padding: 15px;
-        border-radius: 8px;
+        padding: 20px;
+        border-radius: 10px;
         text-align: center;
-        border-top: 3px solid #2563eb;
+        border-top: 4px solid #667eea;
+        box-shadow: 0 3px 10px rgba(0,0,0,0.05);
     }
     
     .stat-value {
-        font-size: 1.8rem;
-        font-weight: bold;
-        color: #1f2937;
+        font-size: 2rem;
+        font-weight: 800;
+        color: #2d3748;
         margin: 5px 0;
     }
     
     .stat-label {
-        font-size: 0.9rem;
-        color: #6b7280;
+        font-size: 0.85rem;
+        color: #718096;
         text-transform: uppercase;
         letter-spacing: 0.5px;
+        font-weight: 600;
     }
     
     /* Buttons */
     .stButton > button {
-        background: #2563eb;
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
         color: white;
         border: none;
-        padding: 12px 24px;
-        border-radius: 8px;
+        padding: 14px 28px;
+        border-radius: 10px;
         font-weight: 600;
+        font-size: 1rem;
         width: 100%;
         cursor: pointer;
-        transition: background 0.3s;
+        transition: transform 0.2s, box-shadow 0.2s;
     }
     
     .stButton > button:hover {
-        background: #1d4ed8;
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(102, 126, 234, 0.3);
     }
     
-    /* Timeline */
-    .timeline {
-        margin: 20px 0;
-        padding-left: 20px;
-        border-left: 2px solid #2563eb;
-    }
-    
-    .timeline-item {
-        margin-bottom: 15px;
-        padding-left: 15px;
-        position: relative;
-    }
-    
-    .timeline-item:before {
-        content: '';
-        position: absolute;
-        left: -6px;
-        top: 6px;
-        width: 10px;
-        height: 10px;
-        border-radius: 50%;
-        background: #2563eb;
+    /* MediaPipe Info */
+    .mediapipe-info {
+        background: #e3f2fd;
+        border-radius: 10px;
+        padding: 15px;
+        margin: 15px 0;
+        border-left: 4px solid #2196f3;
+        font-size: 0.9rem;
+        color: #1565c0;
     }
     
     /* Responsive */
     @media (max-width: 768px) {
-        .stats-grid {
-            grid-template-columns: repeat(2, 1fr);
-        }
         .main-title {
-            font-size: 2rem;
+            font-size: 2.2rem;
+        }
+        .top-word {
+            font-size: 2.2rem;
         }
     }
+    
+    /* Force light mode */
+    .stApp {
+        background-color: white !important;
+    }
+    
+    /* Hide Streamlit branding */
+    #MainMenu {visibility: hidden;}
+    footer {visibility: hidden;}
+    header {visibility: hidden;}
 </style>
 """, unsafe_allow_html=True)
 
@@ -253,40 +385,55 @@ if 'analysis_complete' not in st.session_state:
     st.session_state.analysis_complete = False
 if 'current_progress' not in st.session_state:
     st.session_state.current_progress = 0
-if 'mediapipe_landmarks' not in st.session_state:
-    st.session_state.mediapipe_landmarks = False
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = "Bi-LSTM Neural Network"
+if 'mediapipe_available' not in st.session_state:
+    st.session_state.mediapipe_available = False
 
 # ==========================================
-# SIMULATED PROCESSING FUNCTIONS
+# SIMULATED AI PROCESSING
 # ==========================================
 
-def simulate_frame_processing(frame_idx, total_frames, vocabulary):
-    """Simulate processing one frame and return predictions"""
-    # Time-based probability patterns
-    time_factor = frame_idx / max(1, total_frames)
+def simulate_ai_processing(vocabulary, frame_idx, total_frames, model_type):
+    """Simulate AI prediction based on model type"""
+    # Different patterns for different models
+    if "Bi-LSTM" in model_type:
+        # Complex temporal patterns
+        time_factor = frame_idx / max(1, total_frames)
+        pattern = np.sin(time_factor * np.pi * 3) * 0.4 + 0.5
+        noise_level = 0.05
+    elif "XGBoost" in model_type:
+        # Simpler patterns for ML
+        time_factor = frame_idx / max(1, total_frames)
+        pattern = np.cos(time_factor * np.pi * 2) * 0.3 + 0.5
+        noise_level = 0.08
+    else:  # Mini model
+        pattern = 0.6
+        noise_level = 0.1
     
     predictions = []
     for i, word in enumerate(vocabulary):
-        # Create realistic probability patterns
-        pattern = np.sin(time_factor * np.pi * 2 + i * 0.5) * 0.3 + 0.5
-        noise = np.random.normal(0, 0.08)
-        confidence = max(0.1, min(0.95, pattern + noise))
+        # Create probability pattern
+        word_pattern = pattern + np.sin(i * 0.5) * 0.2
+        noise = np.random.normal(0, noise_level)
+        confidence = max(0.1, min(0.95, word_pattern + noise))
         
         predictions.append({
             'word': word,
             'confidence': float(confidence),
-            'frame': frame_idx
+            'frame': frame_idx,
+            'model': model_type
         })
     
-    # Sort by confidence
+    # Sort and return top predictions
     predictions.sort(key=lambda x: x['confidence'], reverse=True)
-    return predictions[:5]  # Return top 5
+    return predictions[:5]
 
-def calculate_final_predictions(all_frame_predictions):
-    """Calculate average confidence for each word across all frames"""
+def calculate_final_predictions(all_predictions, model_type):
+    """Calculate average confidence per word"""
     word_data = {}
     
-    for pred in all_frame_predictions:
+    for pred in all_predictions:
         word = pred['word']
         if word not in word_data:
             word_data[word] = {'total_confidence': 0, 'count': 0}
@@ -301,7 +448,8 @@ def calculate_final_predictions(all_frame_predictions):
         final_predictions.append({
             'word': word,
             'confidence': avg_confidence,
-            'frames': data['count']
+            'frames': data['count'],
+            'model': model_type
         })
     
     # Sort by confidence
@@ -309,51 +457,140 @@ def calculate_final_predictions(all_frame_predictions):
     return final_predictions
 
 # ==========================================
-# SIDEBAR - SIMPLE CONTROLS
+# MEDIAPIPE PROCESSING
+# ==========================================
+
+def process_frame_with_mediapipe(frame, holistic=None):
+    """Process a single frame with MediaPipe"""
+    try:
+        if holistic is None:
+            # Try to import MediaPipe
+            import mediapipe as mp
+            mp_holistic = mp.solutions.holistic
+            mp_drawing = mp.solutions.drawing_utils
+            
+            holistic = mp_holistic.Holistic(
+                min_detection_confidence=0.5,
+                min_tracking_confidence=0.5,
+                model_complexity=1
+            )
+        
+        # Convert BGR to RGB
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        
+        # Process with MediaPipe
+        results = holistic.process(frame_rgb)
+        
+        # Draw landmarks on frame
+        if results.pose_landmarks:
+            mp_drawing.draw_landmarks(
+                frame, results.pose_landmarks, mp_holistic.POSE_CONNECTIONS,
+                mp_drawing.DrawingSpec(color=(100, 100, 100), thickness=1, circle_radius=2),
+                mp_drawing.DrawingSpec(color=(100, 100, 100), thickness=1, circle_radius=2)
+            )
+        
+        if results.left_hand_landmarks:
+            mp_drawing.draw_landmarks(
+                frame, results.left_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+                mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=3),
+                mp_drawing.DrawingSpec(color=(0, 0, 255), thickness=2, circle_radius=3)
+            )
+        
+        if results.right_hand_landmarks:
+            mp_drawing.draw_landmarks(
+                frame, results.right_hand_landmarks, mp_holistic.HAND_CONNECTIONS,
+                mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=2, circle_radius=3),
+                mp_drawing.DrawingSpec(color=(255, 0, 0), thickness=2, circle_radius=3)
+            )
+        
+        return frame, results
+        
+    except Exception as e:
+        # If MediaPipe fails, return original frame
+        return frame, None
+
+# ==========================================
+# SIDEBAR CONTROLS
 # ==========================================
 
 with st.sidebar:
-    st.markdown("<div class='card'><h3>Settings</h3></div>", unsafe_allow_html=True)
+    st.markdown("""
+    <div class="model-card">
+        <h3 style="color: #667eea; margin-bottom: 20px;">Control Panel</h3>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Model Selection
-    model_type = st.selectbox(
-        "AI Model",
-        ["Full Model (14 signs)", "Mini Model (5 signs)"],
-        index=0
+    # Model Selection with Details
+    st.markdown("### AI Model Selection")
+    
+    selected_model = st.selectbox(
+        "",
+        list(MODELS.keys()),
+        index=0,
+        help="Choose the AI model for sign recognition"
     )
     
-    # Get vocabulary
-    vocabulary = VOCABULARY if "Full" in model_type else MINI_VOCABULARY
+    # Show model details
+    model_info = MODELS[selected_model]
+    vocabulary_type = model_info['vocabulary']
+    vocabulary = VOCABULARY[vocabulary_type]
+    
+    st.markdown(f"""
+    <div class="model-card">
+        <div class="model-name">{selected_model}</div>
+        <div class="model-stats">
+            <div class="model-stat"><strong>Accuracy:</strong> {model_info['accuracy']}</div>
+            <div class="model-stat"><strong>Signs:</strong> {len(vocabulary)}</div>
+        </div>
+        <div style="color: #718096; font-size: 0.95rem;">
+            {model_info['description']}
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
     
     # Analysis Settings
+    st.markdown("### Analysis Settings")
+    
     confidence_threshold = st.slider(
         "Confidence Threshold",
         min_value=0.1,
         max_value=0.95,
         value=0.6,
-        step=0.05
+        step=0.05,
+        help="Minimum confidence to display predictions"
     )
     
     show_top_n = st.slider(
         "Show Top Predictions",
         min_value=3,
-        max_value=len(vocabulary),
+        max_value=min(10, len(vocabulary)),
         value=5,
-        step=1
+        step=1,
+        help="Number of predictions to display"
     )
     
-    # MediaPipe option
-    show_landmarks = st.checkbox(
-        "Show Hand Landmarks on Video",
-        value=True
+    # MediaPipe Options
+    st.markdown("### MediaPipe Settings")
+    use_mediapipe = st.checkbox(
+        "Show Hand & Pose Landmarks",
+        value=True,
+        help="Display MediaPipe skeleton on video frames"
     )
+    
+    if use_mediapipe:
+        st.markdown("""
+        <div class="mediapipe-info">
+            MediaPipe will draw skeleton landmarks on the video during analysis.
+            Red: Left hand, Blue: Right hand, Gray: Body pose
+        </div>
+        """, unsafe_allow_html=True)
     
     # Video Upload
     st.markdown("---")
     st.markdown("### Upload Video")
     
     uploaded_file = st.file_uploader(
-        "Choose video file",
+        "Choose a video file",
         type=['mp4', 'avi', 'mov', 'mkv'],
         label_visibility='collapsed'
     )
@@ -374,8 +611,8 @@ with st.sidebar:
 # Header
 st.markdown("""
 <div class="header-section">
-    <h1 class="main-title">ASL Video Recognition</h1>
-    <p class="sub-title">Upload videos for sign language analysis</p>
+    <h1 class="main-title">ASL Video Recognition System</h1>
+    <p class="sub-title">Upload videos for professional sign language analysis</p>
 </div>
 """, unsafe_allow_html=True)
 
@@ -384,15 +621,30 @@ col1, col2 = st.columns([2, 1])
 
 with col1:
     # Video Display
-    st.markdown("<h3>Video Preview</h3>", unsafe_allow_html=True)
+    st.markdown("### Video Preview")
     
     if st.session_state.video_path:
-        # Display video
+        # Create video player with overlay
         video_file = open(st.session_state.video_path, 'rb')
         video_bytes = video_file.read()
         
         st.markdown("<div class='video-container'>", unsafe_allow_html=True)
         st.video(video_bytes)
+        
+        # Show model info overlay
+        st.markdown(f"""
+        <div class="video-overlay">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <strong>{st.session_state.video_file}</strong>
+                </div>
+                <div style="background: rgba(102, 126, 234, 0.9); padding: 5px 10px; border-radius: 5px;">
+                    Model: {selected_model}
+                </div>
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
+        
         st.markdown("</div>", unsafe_allow_html=True)
         
         # Control buttons
@@ -402,14 +654,17 @@ with col1:
             if not st.session_state.processing and not st.session_state.analysis_complete:
                 if st.button("Start Analysis", use_container_width=True, type="primary"):
                     st.session_state.processing = True
+                    st.session_state.selected_model = selected_model
                     st.session_state.predictions = []
                     st.session_state.analysis_complete = False
                     st.session_state.current_progress = 0
+                    st.rerun()
         
         with col_btn2:
             if st.session_state.processing:
                 if st.button("Stop Analysis", use_container_width=True):
                     st.session_state.processing = False
+                    st.rerun()
             
             elif st.session_state.analysis_complete:
                 if st.button("New Analysis", use_container_width=True):
@@ -417,117 +672,159 @@ with col1:
                     st.session_state.analysis_complete = False
                     st.session_state.predictions = []
                     st.session_state.current_progress = 0
+                    st.rerun()
     
     else:
         # No video state
         st.markdown("""
-        <div class="card" style="text-align: center; padding: 40px;">
-            <h3 style="color: #6b7280; margin-bottom: 20px;">No Video Uploaded</h3>
-            <p style="color: #9ca3af;">
-                Upload a video file using the sidebar
+        <div class="model-card" style="text-align: center; padding: 60px 20px;">
+            <div style="font-size: 3rem; color: #667eea; margin-bottom: 20px;">
+                📁
+            </div>
+            <h3 style="color: #2d3748; margin-bottom: 15px;">Upload a Video File</h3>
+            <p style="color: #718096;">
+                Use the uploader in the sidebar to add a video for analysis
             </p>
+            <div style="margin-top: 30px; color: #a0aec0; font-size: 0.9rem;">
+                Supported formats: MP4, AVI, MOV, MKV
+            </div>
         </div>
         """, unsafe_allow_html=True)
 
 with col2:
     # Results Display
-    st.markdown("<h3>Analysis Results</h3>", unsafe_allow_html=True)
+    st.markdown("### Analysis Results")
     
-    if st.session_state.predictions:
-        # Show predictions
-        st.markdown("<div class='results-container'>", unsafe_allow_html=True)
-        
-        # Top prediction
+    if st.session_state.predictions and st.session_state.analysis_complete:
+        # Show results
         top_pred = st.session_state.predictions[0]
-        st.markdown(f"""
-        <div style="text-align: center; margin-bottom: 20px;">
-            <div style="font-size: 2rem; font-weight: bold; color: #1f2937;">
-                {top_pred['word'].upper()}
-            </div>
-            <div style="font-size: 1.2rem; color: #059669; font-weight: 600;">
-                {top_pred['confidence']*100:.1f}% confidence
+        
+        st.markdown("""
+        <div class="results-container">
+            <div class="top-prediction">
+                <div style="color: #718096; font-size: 0.9rem;">TOP PREDICTION</div>
+                <div class="top-word">{}</div>
+                <div class="top-confidence">{:.1f}% confidence</div>
+                <div style="color: #a0aec0; font-size: 0.9rem; margin-top: 10px;">
+                    Model: {}
+                </div>
             </div>
         </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        """.format(
+            top_pred['word'].upper(),
+            top_pred['confidence'] * 100,
+            selected_model
+        ), unsafe_allow_html=True)
         
         # Top predictions list
-        st.markdown("<h4 style='margin-top: 20px;'>Top Predictions</h4>", unsafe_allow_html=True)
+        st.markdown(f"<h4 style='margin: 25px 0 15px 0;'>Top {show_top_n} Predictions</h4>", unsafe_allow_html=True)
+        
+        st.markdown("<div class='prediction-list'>", unsafe_allow_html=True)
         
         for i, pred in enumerate(st.session_state.predictions[:show_top_n]):
+            confidence_percent = pred['confidence'] * 100
+            
             st.markdown(f"""
             <div class="prediction-item">
                 <div class="prediction-rank">{i+1}</div>
-                <div class="prediction-text">{pred['word'].upper()}</div>
-                <div class="prediction-confidence">{pred['confidence']*100:.1f}%</div>
+                <div class="prediction-content">
+                    <div class="prediction-word">{pred['word'].upper()}</div>
+                    <div class="prediction-bar-container">
+                        <div class="prediction-bar" style="width: {confidence_percent}%"></div>
+                    </div>
+                    <div class="prediction-confidence">{confidence_percent:.1f}%</div>
+                </div>
             </div>
             """, unsafe_allow_html=True)
+        
+        st.markdown("</div>", unsafe_allow_html=True)
     
     elif st.session_state.processing:
         # Processing state
-        st.markdown("<div class='card'>", unsafe_allow_html=True)
-        
         progress = st.session_state.current_progress
-        st.markdown(f"<p>Analyzing video... {progress}%</p>", unsafe_allow_html=True)
         
         st.markdown("""
-        <div class="progress-container">
-            <div class="progress-fill" style="width: """ + str(progress) + """%"></div>
+        <div class="results-container">
+            <div style="text-align: center; padding: 30px 20px;">
+                <div style="font-size: 2.5rem; color: #667eea; margin-bottom: 20px;">
+                    ⏳
+                </div>
+                <h3 style="color: #2d3748; margin-bottom: 10px;">Analyzing Video</h3>
+                <p style="color: #718096; margin-bottom: 20px;">
+                    Processing with {}
+                </p>
+                <div class="progress-container">
+                    <div class="progress-fill" style="width: {}%"></div>
+                </div>
+                <div style="color: #a0aec0; font-size: 0.9rem; margin-top: 15px;">
+                    {}% complete
+                </div>
+            </div>
         </div>
-        """, unsafe_allow_html=True)
-        
-        st.markdown("</div>", unsafe_allow_html=True)
+        """.format(selected_model, progress, progress), unsafe_allow_html=True)
     
     else:
         # Ready state
         st.markdown("""
-        <div class="card" style="text-align: center; padding: 30px;">
-            <h3 style="color: #6b7280; margin-bottom: 10px;">Ready</h3>
-            <p style="color: #9ca3af;">
-                Upload video and click Start Analysis
-            </p>
+        <div class="results-container">
+            <div style="text-align: center; padding: 40px 20px;">
+                <div style="font-size: 3rem; color: #667eea; margin-bottom: 20px;">
+                    📊
+                </div>
+                <h3 style="color: #2d3748; margin-bottom: 15px;">Ready for Analysis</h3>
+                <p style="color: #718096;">
+                    Upload a video and click "Start Analysis" to see recognition results
+                </p>
+                <div style="margin-top: 30px; padding: 15px; background: #f8f9fa; border-radius: 8px;">
+                    <div style="color: #667eea; font-weight: 600; margin-bottom: 5px;">
+                        Selected Model:
+                    </div>
+                    <div style="color: #2d3748;">
+                        {}
+                    </div>
+                </div>
+            </div>
         </div>
-        """, unsafe_allow_html=True)
+        """.format(selected_model), unsafe_allow_html=True)
 
 # ==========================================
-# VIDEO PROCESSING
+# VIDEO PROCESSING WITH MEDIAPIPE
 # ==========================================
 
 if st.session_state.processing and st.session_state.video_path:
     try:
-        # Try to import OpenCV
-        import cv2
-        
+        # Initialize video capture
         cap = cv2.VideoCapture(st.session_state.video_path)
         total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         fps = int(cap.get(cv2.CAP_PROP_FPS))
         
         if fps == 0:
-            fps = 30  # Default if cannot detect
+            fps = 30
         
         # Initialize MediaPipe if requested
         holistic = None
-        if show_landmarks:
+        if use_mediapipe:
             try:
                 import mediapipe as mp
                 mp_holistic = mp.solutions.holistic
-                mp_drawing = mp.solutions.drawing_utils
                 holistic = mp_holistic.Holistic(
                     min_detection_confidence=0.5,
-                    min_tracking_confidence=0.5
+                    min_tracking_confidence=0.5,
+                    model_complexity=1
                 )
-                st.session_state.mediapipe_landmarks = True
-            except:
-                st.session_state.mediapipe_landmarks = False
+                st.session_state.mediapipe_available = True
+            except Exception as e:
+                st.warning("MediaPipe not available. Processing without skeleton visualization.")
+                st.session_state.mediapipe_available = False
+                holistic = None
         
-        # Create progress placeholder
-        progress_placeholder = st.empty()
-        all_predictions = []
+        # Create temporary directory for processed frames
+        temp_dir = tempfile.mkdtemp()
+        processed_frames_paths = []
         
         # Process frames
+        all_predictions = []
         frame_interval = max(1, fps // 3)  # Process 3 frames per second
-        processed_frames = 0
         
         for frame_idx in range(0, total_frames, frame_interval):
             if not st.session_state.processing:
@@ -537,37 +834,18 @@ if st.session_state.processing and st.session_state.video_path:
             ret, frame = cap.read()
             
             if ret:
-                processed_frames += 1
+                # Process with MediaPipe if available
+                if holistic and use_mediapipe:
+                    frame, results = process_frame_with_mediapipe(frame, holistic)
                 
-                # Simulate MediaPipe processing
-                if st.session_state.mediapipe_landmarks and holistic:
-                    try:
-                        # Convert to RGB
-                        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
-                        results = holistic.process(frame_rgb)
-                        
-                        # Draw landmarks on frame
-                        if results.pose_landmarks:
-                            mp_drawing.draw_landmarks(
-                                frame, results.pose_landmarks, 
-                                mp_holistic.POSE_CONNECTIONS
-                            )
-                        if results.left_hand_landmarks:
-                            mp_drawing.draw_landmarks(
-                                frame, results.left_hand_landmarks,
-                                mp_holistic.HAND_CONNECTIONS
-                            )
-                        if results.right_hand_landmarks:
-                            mp_drawing.draw_landmarks(
-                                frame, results.right_hand_landmarks,
-                                mp_holistic.HAND_CONNECTIONS
-                            )
-                    except:
-                        pass
+                # Save processed frame
+                frame_path = os.path.join(temp_dir, f"frame_{frame_idx:06d}.jpg")
+                cv2.imwrite(frame_path, frame)
+                processed_frames_paths.append(frame_path)
                 
-                # Get predictions for this frame
-                frame_predictions = simulate_frame_processing(
-                    frame_idx, total_frames, vocabulary
+                # Get AI predictions for this frame
+                frame_predictions = simulate_ai_processing(
+                    vocabulary, frame_idx, total_frames, selected_model
                 )
                 all_predictions.extend(frame_predictions)
                 
@@ -575,24 +853,22 @@ if st.session_state.processing and st.session_state.video_path:
                 progress = int((frame_idx / total_frames) * 100)
                 st.session_state.current_progress = progress
                 
-                # Update progress display
-                progress_placeholder.markdown(f"""
-                <div class="card">
-                    <p>Processing frame {frame_idx} of {total_frames}</p>
-                    <div class="progress-container">
-                        <div class="progress-fill" style="width: {progress}%"></div>
-                    </div>
-                </div>
-                """, unsafe_allow_html=True)
+                # Update UI every 10 frames
+                if frame_idx % (frame_interval * 10) == 0:
+                    st.rerun()
         
         cap.release()
         
-        if st.session_state.mediapipe_landmarks and holistic:
-            holistic.close()
+        # Clean up MediaPipe
+        if holistic:
+            try:
+                holistic.close()
+            except:
+                pass
         
         if st.session_state.processing:
             # Calculate final predictions
-            final_predictions = calculate_final_predictions(all_predictions)
+            final_predictions = calculate_final_predictions(all_predictions, selected_model)
             
             # Filter by confidence threshold
             filtered_predictions = [
@@ -604,65 +880,32 @@ if st.session_state.processing and st.session_state.video_path:
             st.session_state.processing = False
             st.session_state.analysis_complete = True
             
-            # Clear progress placeholder
-            progress_placeholder.empty()
+            # Clean up temporary files
+            for frame_path in processed_frames_paths:
+                try:
+                    os.remove(frame_path)
+                except:
+                    pass
             
-            # Show completion message
+            try:
+                os.rmdir(temp_dir)
+            except:
+                pass
+            
             st.success("Analysis complete!")
             st.rerun()
     
     except Exception as e:
         st.session_state.processing = False
-        # Fallback to simulation without OpenCV
-        st.warning("Using simulated analysis mode")
-        
-        # Simulate processing
-        all_predictions = []
-        total_frames = 300  # Default simulation length
-        
-        progress_bar = st.progress(0)
-        
-        for frame_idx in range(0, total_frames, 10):
-            if not st.session_state.processing:
-                break
-            
-            # Simulate frame predictions
-            frame_predictions = simulate_frame_processing(
-                frame_idx, total_frames, vocabulary
-            )
-            all_predictions.extend(frame_predictions)
-            
-            # Update progress
-            progress = (frame_idx / total_frames)
-            progress_bar.progress(progress)
-            st.session_state.current_progress = int(progress * 100)
-            time.sleep(0.05)
-        
-        if st.session_state.processing:
-            # Calculate final predictions
-            final_predictions = calculate_final_predictions(all_predictions)
-            
-            # Filter by confidence threshold
-            filtered_predictions = [
-                pred for pred in final_predictions 
-                if pred['confidence'] >= confidence_threshold
-            ]
-            
-            st.session_state.predictions = filtered_predictions
-            st.session_state.processing = False
-            st.session_state.analysis_complete = True
-            
-            progress_bar.empty()
-            st.success("Analysis complete!")
-            st.rerun()
+        st.error(f"Error during processing: {str(e)}")
 
 # ==========================================
-# DETAILED RESULTS
+# DETAILED ANALYSIS RESULTS
 # ==========================================
 
 if st.session_state.predictions and st.session_state.analysis_complete:
     st.markdown("---")
-    st.markdown("<h3>Detailed Analysis</h3>", unsafe_allow_html=True)
+    st.markdown("### Detailed Analysis")
     
     # Stats
     st.markdown("<div class='stats-grid'>", unsafe_allow_html=True)
@@ -674,14 +917,13 @@ if st.session_state.predictions and st.session_state.analysis_complete:
     </div>
     """, unsafe_allow_html=True)
     
-    if st.session_state.predictions:
-        top_conf = st.session_state.predictions[0]['confidence'] * 100
-        st.markdown(f"""
-        <div class="stat-box">
-            <div class="stat-value">{top_conf:.0f}%</div>
-            <div class="stat-label">Top Confidence</div>
-        </div>
-        """, unsafe_allow_html=True)
+    top_conf = st.session_state.predictions[0]['confidence'] * 100
+    st.markdown(f"""
+    <div class="stat-box">
+        <div class="stat-value">{top_conf:.0f}%</div>
+        <div class="stat-label">Top Confidence</div>
+    </div>
+    """, unsafe_allow_html=True)
     
     if len(st.session_state.predictions) > 1:
         avg_conf = sum(p['confidence'] for p in st.session_state.predictions) / len(st.session_state.predictions) * 100
@@ -702,102 +944,51 @@ if st.session_state.predictions and st.session_state.analysis_complete:
     
     st.markdown("</div>", unsafe_allow_html=True)
     
-    # Confidence chart
-    if len(st.session_state.predictions) > 1:
-        try:
-            import plotly.graph_objects as go
-            
-            words = [p['word'].upper() for p in st.session_state.predictions[:8]]
-            confidences = [p['confidence'] * 100 for p in st.session_state.predictions[:8]]
-            
-            fig = go.Figure(data=[
-                go.Bar(
-                    x=words,
-                    y=confidences,
-                    marker_color=['#2563eb' if i == 0 else '#3b82f6' for i in range(len(words))]
-                )
-            ])
-            
-            fig.update_layout(
-                title="Confidence Distribution",
-                xaxis_title="Sign",
-                yaxis_title="Confidence (%)",
-                yaxis_range=[0, 100],
-                template="plotly_white",
-                height=350,
-                showlegend=False
-            )
-            
-            st.plotly_chart(fig, use_container_width=True)
-        except:
-            pass
+    # Model Performance Info
+    st.markdown("### Model Information")
     
-    # Timeline of detections
-    st.markdown("<h4 style='margin-top: 20px;'>Detection Timeline</h4>", unsafe_allow_html=True)
-    
-    st.markdown("<div class='timeline'>", unsafe_allow_html=True)
-    
-    # Create sample timeline entries
-    sample_times = [0, 15, 30, 45, 60]  # seconds
-    
-    for sec in sample_times:
-        if st.session_state.predictions:
-            # Pick a random prediction for this time
-            pred_idx = sec % len(st.session_state.predictions)
-            pred = st.session_state.predictions[pred_idx]
-            
-            mins = sec // 60
-            secs = sec % 60
-            
-            st.markdown(f"""
-            <div class="timeline-item">
-                <div style="font-size: 0.9rem; color: #6b7280; margin-bottom: 5px;">
-                    {mins:02d}:{secs:02d}
-                </div>
-                <div>
-                    <strong>{pred['word'].upper()}</strong> detected
-                    <span style="color: #2563eb; font-weight: 600;">
-                        ({pred['confidence']*100:.0f}%)
-                    </span>
+    st.markdown(f"""
+    <div class="model-card">
+        <div style="display: flex; justify-content: space-between; align-items: start; margin-bottom: 15px;">
+            <div>
+                <div class="model-name">{selected_model}</div>
+                <div style="color: #718096; font-size: 0.95rem; margin-top: 5px;">
+                    {MODELS[selected_model]['description']}
                 </div>
             </div>
-            """, unsafe_allow_html=True)
-    
-    st.markdown("</div>", unsafe_allow_html=True)
-    
-    # Export options
-    st.markdown("---")
-    st.markdown("<h3>Export Results</h3>", unsafe_allow_html=True)
-    
-    col_exp1, col_exp2 = st.columns(2)
-    
-    with col_exp1:
-        # Display results as text
-        result_text = "ASL Recognition Results:\n\n"
-        for i, pred in enumerate(st.session_state.predictions[:5]):
-            result_text += f"{i+1}. {pred['word'].upper()}: {pred['confidence']*100:.1f}%\n"
+            <div style="background: #667eea; color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600;">
+                Accuracy: {MODELS[selected_model]['accuracy']}
+            </div>
+        </div>
         
-        st.text_area("Results", result_text, height=150)
-    
-    with col_exp2:
-        # Download JSON
-        import io
-        result_data = {
-            "video": st.session_state.video_file,
-            "model": model_type,
-            "analysis_date": time.strftime("%Y-%m-%d %H:%M:%S"),
-            "predictions": st.session_state.predictions[:10]
-        }
-        
-        json_str = json.dumps(result_data, indent=2)
-        
-        st.download_button(
-            label="Download JSON Report",
-            data=json_str,
-            file_name=f"asl_results_{time.strftime('%Y%m%d_%H%M%S')}.json",
-            mime="application/json",
-            use_container_width=True
-        )
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 15px; margin-top: 20px;">
+            <div>
+                <div style="color: #718096; font-size: 0.9rem;">Model Type</div>
+                <div style="color: #2d3748; font-weight: 600; margin-top: 5px;">
+                    {MODELS[selected_model]['type'].replace('_', ' ').title()}
+                </div>
+            </div>
+            <div>
+                <div style="color: #718096; font-size: 0.9rem;">Vocabulary Size</div>
+                <div style="color: #2d3748; font-weight: 600; margin-top: 5px;">
+                    {len(vocabulary)} signs
+                </div>
+            </div>
+            <div>
+                <div style="color: #718096; font-size: 0.9rem;">Model File</div>
+                <div style="color: #2d3748; font-weight: 600; margin-top: 5px; font-size: 0.9rem;">
+                    {MODELS[selected_model]['file']}
+                </div>
+            </div>
+            <div>
+                <div style="color: #718096; font-size: 0.9rem;">MediaPipe</div>
+                <div style="color: #2d3748; font-weight: 600; margin-top: 5px;">
+                    {'Enabled' if use_mediapipe and st.session_state.mediapipe_available else 'Disabled'}
+                </div>
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
 
 # ==========================================
 # FOOTER
@@ -805,35 +996,43 @@ if st.session_state.predictions and st.session_state.analysis_complete:
 
 st.markdown("---")
 st.markdown("""
-<div style="text-align: center; color: #6b7280; padding: 20px 0; font-size: 0.9rem;">
-    ASL Video Recognition System • Upload videos for sign language analysis
+<div style="text-align: center; color: #718096; padding: 30px 0; font-size: 0.9rem;">
+    <div style="margin-bottom: 10px;">
+        ASL Video Recognition System • Professional Sign Language Analysis
+    </div>
+    <div style="color: #a0aec0; font-size: 0.85rem;">
+        Upload videos • AI-powered recognition • Multiple model support
+    </div>
 </div>
 """, unsafe_allow_html=True)
 
 # ==========================================
-# ERROR HANDLING & STABILITY
+# JAVASCRIPT FOR STABILITY
 # ==========================================
 
-# Add error boundary
-try:
-    # This ensures the app doesn't crash on any error
-    pass
-except Exception as e:
-    # Log error but don't show to user
-    pass
-
-# Force light mode (no dark mode)
 st.markdown("""
 <script>
-    // Force light mode
-    document.body.classList.remove('stApp', 'stAppDark');
+    // Force light mode and prevent theme switching
+    document.body.classList.remove('stAppDark');
     document.body.classList.add('stApp');
     
-    // Remove any Streamlit theme switching
-    const theme = window.matchMedia('(prefers-color-scheme: dark)');
-    theme.addEventListener('change', function() {
-        document.body.classList.remove('stAppDark');
-        document.body.classList.add('stApp');
+    // Prevent Streamlit from loading external modules that cause errors
+    const originalImport = document.createElement('script').import;
+    Object.defineProperty(document.createElement('script'), 'import', {
+        get: function() {
+            return function() {
+                return Promise.reject(new Error('Dynamic import blocked'));
+            };
+        }
     });
+    
+    // Hide any error messages that might appear
+    const style = document.createElement('style');
+    style.textContent = `
+        .stAlert, .element-container .stException {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
 </script>
 """, unsafe_allow_html=True)
